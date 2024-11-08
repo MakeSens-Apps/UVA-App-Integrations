@@ -26,10 +26,11 @@ jobs:
         run: |
           curl https://pyenv.run | bash
           export PATH="$HOME/.pyenv/bin:$PATH"
-          eval "$(pyenv init --path)"
-          eval "$(pyenv init -)"
-          pyenv install 3.9.20
-          pyenv global 3.9.20
+          export PATH="$HOME/.pyenv/shims:$PATH"  # Añadir los shims al PATH
+          eval "$(pyenv init --path)"  # Inicializa pyenv en el path
+          eval "$(pyenv init -)"  # Inicializa pyenv para el shell
+          pyenv install 3.9.20  # Instalar Python 3.9.20
+          pyenv global 3.9.20  # Establecer Python 3.9.20 como global
           python --version  # Verificar que Python 3.9 esté correctamente instalado
 
 
