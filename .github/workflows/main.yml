@@ -24,8 +24,8 @@ jobs:
 
       - name: Validate SAM Template
         run: |
-          sam validate
+          sam validate --template-file SAM-UVA-App-Integrations/template.yml
 
       - name: Build SAM Application
         run: |
-          sam build
+          sam build --template-file SAM-UVA-App-Integrations/template.yml
