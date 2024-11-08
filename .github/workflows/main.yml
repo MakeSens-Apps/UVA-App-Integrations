@@ -23,11 +23,9 @@ jobs:
           pip install aws-sam-cli
 
       - name: Validate SAM Template
-        working-directory: SAM-UVA-App-Integrations
         run: |
-          sam validate --template-file template.yml
+          sam validate
 
       - name: Build SAM Application
-        working-directory: SAM-UVA-App-Integrations
         run: |
-          sam build --template-file template.yml
+          sam build
