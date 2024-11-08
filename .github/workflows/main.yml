@@ -28,8 +28,8 @@ jobs:
           export PATH="$HOME/.pyenv/bin:$PATH"
           eval "$(pyenv init --path)"
           eval "$(pyenv init -)"
-          pyenv install 3.9.10
-          pyenv global 3.9.10
+          pyenv install 3.9.20
+          pyenv global 3.9.20
           python --version  # Verificar que Python 3.9 esté correctamente instalado
 
 
