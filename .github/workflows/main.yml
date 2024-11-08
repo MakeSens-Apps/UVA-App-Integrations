@@ -22,12 +22,16 @@ jobs:
         run: |
           pip install aws-sam-cli
 
-      - name: Install Python 3.9
+      - name: Install pyenv and Python 3.9
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y python3.9 python3.9-distutils
-          sudo apt-get install -y python3-pip
-          python3.9 --version  # Verificar que Python 3.9 esté correctame
+          curl https://pyenv.run | bash
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          eval "$(pyenv init --path)"
+          eval "$(pyenv init -)"
+          pyenv install 3.9.10
+          pyenv global 3.9.10
+          python --version  # Verificar que Python 3.9 esté correctamente instalado
+
 
       - name: Set up AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
