@@ -13,14 +13,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Configure AWS CLI
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y awscli
-
-      - name: Install SAM CLI
-        run: |
-          pip install aws-sam-cli
+      - name: Set up AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  
 
       - name: Install pyenv and Python 3.9
         run: |
@@ -33,20 +31,21 @@ jobs:
           pyenv global 3.9.20  # Establecer Python 3.9.20 como global
           python --version  # Verificar que Python 3.9 esté correctamente instalado
 
-
-      - name: Set up AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  
+      - name: Install aws-sam-cli
+        run: |
+          python -m pip install --upgrade pip  # Asegura que pip está actualizado
+          pip install aws-sam-cli  # Instalar aws-sam-cli
 
       - name: Validate SAM Template
         working-directory: SAM-UVA-App-Integrations
         run: |
+          # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
+          export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
           sam validate --template-file template.yaml  # Corregido para .yaml
 
       - name: Build SAM Application
         working-directory: SAM-UVA-App-Integrations
         run: |
+          # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
+          export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
           sam build --template-file template.yaml  # Corregido para .yaml
