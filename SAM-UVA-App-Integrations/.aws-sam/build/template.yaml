@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Este microservicio se enfoca en integrar UVA con los otros servicios  de
+  MakeSens:  1. DeviceDataAcces 2. MakeSensCloud
+
+  '
+Globals:
+  Function:
+    MemorySize: 520
+    Runtime: python3.9
+    Architectures:
+    - x86_64
+    Timeout: 600
+Parameters:
+  SNSTopicARN:
+    Type: String
+    Default: arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData
+  TopicRegion:
+    Type: String
+    Default: us-east-1
+Resources:
+  DynamoDBEventProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: DynamoDBEventProcessorFunction
+      Handler: dynamodb_to_sns.lambda_handler
+      Events:
+        DynamoDBStreamEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+            StartingPosition: LATEST
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 10
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Sid: DynamoDBStreamAccess
+          Effect: Allow
+          Action:
+          - dynamodb:ListStreams
+          Resource: '*'
+        - Sid: DynamoDBStreamSpecificAccess
+          Effect: Allow
+          Action:
+          - dynamodb:GetRecords
+          - dynamodb:GetShardIterator
+          - dynamodb:DescribeStream
+          Resource: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+        - Sid: SNSPublishAccess
+          Effect: Allow
+          Action:
+          - sns:Publish
+          Resource:
+            Ref: SNSTopicARN
+      Environment:
+        Variables:
+          SNSTopicARN:
+            Ref: SNSTopicARN
+    Metadata:
+      SamResourceId: DynamoDBEventProcessorFunction
