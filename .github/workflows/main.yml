@@ -22,6 +22,13 @@ jobs:
         run: |
           pip install aws-sam-cli
 
+      - name: Install Python 3.9
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3.9 python3.9-distutils
+          sudo apt-get install -y python3-pip
+          python3.9 --version  # Verificar que Python 3.9 esté correctame
+
       - name: Set up AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
