@@ -8,6 +8,8 @@ if [ "$BRANCH" == "develop" ]; then
     ENVIRONMENT="default"  # Usa configuración [default.deploy.parameters] para develop
 elif [ "$BRANCH" == "test" ]; then
     ENVIRONMENT="test"  # Usa configuración [test.deploy.parameters] para test
+elif [ "$BRANCH" == "main" ]; then
+    ENVIRONMENT="main"  # Usa configuración [main.deploy.parameters] para main
 else
     echo "Branch no reconocida para despliegue automatizado: $BRANCH"
     exit 1

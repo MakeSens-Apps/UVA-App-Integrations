@@ -5,7 +5,6 @@ from datetime import datetime
 
 def lambda_handler(event, context):
     sns_topic_arn = os.environ.get('SNSTopicARN')
-    print('a')
 
     records = event['Records']
     new_records = []
