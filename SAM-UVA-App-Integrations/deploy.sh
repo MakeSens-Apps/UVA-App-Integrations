@@ -16,4 +16,4 @@ fi
 # Ejecuta el despliegue usando el entorno detectado
 sam validate
 sam build
-sam deploy --config-env "$ENVIRONMENT"
+sam deploy --config-env "$ENVIRONMENT" --no-confirm-changeset
