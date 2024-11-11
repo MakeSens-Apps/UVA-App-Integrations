@@ -14,10 +14,13 @@ Globals:
 Parameters:
   SNSTopicARN:
     Type: String
-    Default: arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData
+    Default: arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop
   TopicRegion:
     Type: String
     Default: us-east-1
+  DynamoDBStreamARN:
+    Type: String
+    Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
 Resources:
   DynamoDBEventProcessorFunction:
     Type: AWS::Serverless::Function
@@ -28,7 +31,8 @@ Resources:
         DynamoDBStreamEvent:
           Type: DynamoDB
           Properties:
-            Stream: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+            Stream:
+              Ref: DynamoDBStreamARN
             StartingPosition: LATEST
             BatchSize: 10
             MaximumBatchingWindowInSeconds: 10
@@ -46,7 +50,8 @@ Resources:
           - dynamodb:GetRecords
           - dynamodb:GetShardIterator
           - dynamodb:DescribeStream
-          Resource: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+          Resource:
+            Ref: DynamoDBStreamARN
         - Sid: SNSPublishAccess
           Effect: Allow
           Action:

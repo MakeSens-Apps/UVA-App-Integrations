@@ -36,16 +36,24 @@ jobs:
           python -m pip install --upgrade pip  # Asegura que pip está actualizado
           pip install aws-sam-cli  # Instalar aws-sam-cli
 
-      - name: Validate SAM Template
+      - name: Run Deploy Script
         working-directory: SAM-UVA-App-Integrations
         run: |
           # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
           export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
-          sam validate --template-file template.yaml  # Corregido para .yaml
+          chmod +x deploy.sh  # Asegura que el script es ejecutable
+          ./deploy.sh
 
-      - name: Build SAM Application
-        working-directory: SAM-UVA-App-Integrations
-        run: |
-          # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
-          export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
-          sam build --template-file template.yaml  # Corregido para .yaml
+      # - name: Validate SAM Template
+      #   working-directory: SAM-UVA-App-Integrations
+      #   run: |
+      #     # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
+      #     export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
+      #     sam validate --template-file template.yaml  # Corregido para .yaml
+
+      # - name: Build SAM Application
+      #   working-directory: SAM-UVA-App-Integrations
+      #   run: |
+      #     # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
+      #     export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
+      #     sam build --template-file template.yaml  # Corregido para .yaml
