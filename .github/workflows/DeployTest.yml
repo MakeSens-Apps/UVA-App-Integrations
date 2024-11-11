@@ -1,9 +1,12 @@
-name: SAM Validate and Build on Develop
+name: SAM devploy on Test
 
 on:
-  push:
+  pull_request:
     branches:
-      - develop  # Se ejecuta solo en la rama 'develop'
+      - test  # Se ejecuta cuando se haga un pull request hacia 'test'
+    types:
+      - closed  # Asegura que se ejecute solo cuando el PR se haya cerrado (es decir, el merge se haya completado)
+
 
 jobs:
   validate_and_build:
@@ -43,17 +46,3 @@ jobs:
           export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
           chmod +x deploy.sh  # Asegura que el script es ejecutable
           ./deploy.sh
-
-      # - name: Validate SAM Template
-      #   working-directory: SAM-UVA-App-Integrations
-      #   run: |
-      #     # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
-      #     export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
-      #     sam validate --template-file template.yaml  # Corregido para .yaml
-
-      # - name: Build SAM Application
-      #   working-directory: SAM-UVA-App-Integrations
-      #   run: |
-      #     # Asegurarse de que pyenv y Python 3.9 están configurados correctamente
-      #     export PATH="$HOME/.pyenv/shims:$PATH"  # Asegura que los shims están en el PATH
-      #     sam build --template-file template.yaml  # Corregido para .yaml
