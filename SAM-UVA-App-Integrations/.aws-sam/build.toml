@@ -9,4 +9,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["DynamoDBEventProcessorFunction"]
 
+[function_build_definitions.c9043e16-da4c-48b0-8f61-4b52e1d2d15b]
+codeuri = "/home/miguelta281/MakeSens/UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/cloud"
+runtime = "python3.9"
+architecture = "x86_64"
+handler = "test.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UvaToCloudFunction"]
+
 [layer_build_definitions]
