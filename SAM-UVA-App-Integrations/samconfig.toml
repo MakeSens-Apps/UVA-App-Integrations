@@ -9,7 +9,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" DynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322\""
+parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322\""
 image_repositories = []
 
 # Configuración para la rama test
@@ -21,7 +21,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" DynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140\""
+parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140\""
 image_repositories = []
 
 # Configuración para la rama test
@@ -33,5 +33,5 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData\" TopicRegion=\"us-east-1\" DynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:47.539\""
+parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:47.539\""
 image_repositories = []

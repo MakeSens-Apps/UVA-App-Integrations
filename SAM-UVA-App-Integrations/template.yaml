@@ -21,7 +21,7 @@ Parameters:
   TopicRegion:
     Type: String
     Default: us-east-1
-  DynamoDBStreamARN:
+  MeasurementDynamoDBStreamARN:
     Type: String
     Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
 
@@ -36,7 +36,7 @@ Resources:
         DynamoDBStreamEvent:
           Type: DynamoDB
           Properties:
-            Stream: !Ref DynamoDBStreamARN 
+            Stream: !Ref MeasurementDynamoDBStreamARN
             StartingPosition: LATEST
             BatchSize: 10
             MaximumBatchingWindowInSeconds: 10
@@ -54,7 +54,7 @@ Resources:
                 - dynamodb:GetRecords
                 - dynamodb:GetShardIterator
                 - dynamodb:DescribeStream
-              Resource: !Ref DynamoDBStreamARN 
+              Resource: !Ref MeasurementDynamoDBStreamARN
             - Sid: "SNSPublishAccess"
               Effect: Allow
               Action:
