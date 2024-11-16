@@ -169,6 +169,16 @@ def get_organization_id(table_name, linkage_code):
         return None
 
 def create_device(uva_id, organization_id):
+    """
+    Crea un dispositivo en el sistema mediante una mutación GraphQL.
+
+    Args:
+        uva_id (str): Identificador único del dispositivo a crear. Este valor se usará para el ID, descripción y nombre del dispositivo.
+        organization_id (str): Identificador único de la organización a la que pertenece el dispositivo.
+
+    Raises:
+        ValueError: Si la respuesta de la API no tiene éxito.
+    """
     
     appsync_url = 'https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql'
     api_key = 'da2-xxuxsrmjcrfcvetkb2wbvbe6sm'

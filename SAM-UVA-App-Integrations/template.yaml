@@ -6,6 +6,7 @@ Description: >
  de MakeSens: 
  1. DeviceDataAcces
  2. MakeSensCloud
+ 3. UserAPI (Connection)
 
 Globals:
   Function:
@@ -35,6 +36,11 @@ Parameters:
   OrganizationName:
     Type: String
     Default: Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+  # UserAPI (Connection)
+  MeasurementName:
+    Type: String
+    Default: Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop
+
 
 Resources:
   # DeviceDataAccess
@@ -118,6 +124,29 @@ Resources:
           RACIMOTable: !Ref RACIMOTableName
           OrganizationTable: !Ref OrganizationName
   
-  
+  UVALastConnection: 
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: lambdas/uvaConnection
+      Handler: last_connection.lambda_handler
+      Runtime: python3.9
+      Timeout: 600
+      Events: 
+        MyAPIGatewayEvent:
+          Type: Api
+          Properties:
+            Path: /connection/{id_uva}
+            Method: GET
+            Auth:
+              Authorizer: AWS_IAM  
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Sid: "AppSyncAccess"
+              Effect: Allow
+              Action:
+                - appsync:GraphQL
+              Resource: '*'
+
 
       

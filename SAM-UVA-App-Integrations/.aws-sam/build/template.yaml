@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: 'Este microservicio se enfoca en integrar UVA con los otros servicios  de
-  MakeSens:  1. DeviceDataAcces 2. MakeSensCloud
+  MakeSens:  1. DeviceDataAcces 2. MakeSensCloud 3. UserAPI (Connection)
 
   '
 Globals:
@@ -30,6 +30,9 @@ Parameters:
   OrganizationName:
     Type: String
     Default: Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+  MeasurementName:
+    Type: String
+    Default: Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop
 Resources:
   DynamoDBEventProcessorFunction:
     Type: AWS::Serverless::Function
@@ -120,3 +123,28 @@ Resources:
             Ref: OrganizationName
     Metadata:
       SamResourceId: UvaToCloudFunction
+  UVALastConnection:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UVALastConnection
+      Handler: last_connection.lambda_handler
+      Runtime: python3.9
+      Timeout: 600
+      Events:
+        MyAPIGatewayEvent:
+          Type: Api
+          Properties:
+            Path: /connection/{id_uva}
+            Method: GET
+            Auth:
+              Authorizer: AWS_IAM
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Sid: AppSyncAccess
+          Effect: Allow
+          Action:
+          - appsync:GraphQL
+          Resource: '*'
+    Metadata:
+      SamResourceId: UVALastConnection

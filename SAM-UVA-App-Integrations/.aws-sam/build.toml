@@ -18,4 +18,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["UvaToCloudFunction"]
 
+[function_build_definitions.72dff064-0227-4b0d-a834-88ba97b74f1c]
+codeuri = "/home/miguelta281/MakeSens/UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/uvaConnection"
+runtime = "python3.9"
+architecture = "x86_64"
+handler = "last_connection.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UVALastConnection"]
+
 [layer_build_definitions]
