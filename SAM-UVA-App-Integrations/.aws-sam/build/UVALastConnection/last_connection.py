@@ -52,10 +52,11 @@ def get_connection_status(uva_id):
         None: Si no se encontró información de conexión para la UVA especificada.
     """
     # Obtener la última conexión (timestamp en UNIX ms) usando la función auxiliar
-    lastConnection = get_last_measurement(uva_id)
+    lastConnection = get_last_connection(uva_id)
 
     # Validar si se obtuvo la última conexión
     if not lastConnection:
+        # validar si fue creada
         return None  # No hay información de conexión
 
     # Verificar si la última conexión está dentro de las últimas 24 horas
@@ -81,8 +82,7 @@ def is_within_last_24_hours(last_connection):
     twenty_four_hours_ago = now - (24 * 60 * 60 * 1000)  # Hace 24 horas en ms
     return twenty_four_hours_ago <= last_connection <= now
 
-
-def get_last_measurement(uva_id):
+def get_last_connection(uva_id):
     """
     Obtiene la última medición registrada para un dispositivo específico (UVA) utilizando una consulta GraphQL.
 
@@ -134,6 +134,49 @@ def get_last_measurement(uva_id):
         data = response.json()
         items = data.get('data', {}).get('measurementsByUvaIDAndTs', {}).get('items', [])
         created_at = items[0].get('createdAt') if items else None
+        if created_at:
+            return int(datetime.fromisoformat(created_at.replace('Z', '+00:00')).timestamp() * 1000) if created_at else None
+        else:
+            creation_date = get_creation_date(uva_id)
+            return creation_date
+
+    else:
+        return None
+
+def get_creation_date(uva_id):
+    # Configura tus credenciales de AWS y la URL de AppSync
+    appsync_url = 'https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql'
+    api_key = 'da2-ocpxiy4zsncszex4m7lepzxgnq'
+
+    # Variables para la consulta
+    variables = {
+        "uvaID": uva_id
+    }
+
+    # Consulta GraphQL
+    query = """
+    query lastMeasurement($uvaID: ID!) {
+        getUVA(id: $uvaID) {
+            createdAt
+        }
+    }
+    """
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key  # Usamos el API Key para autenticarnos
+    }
+
+    # Realizar la solicitud POST
+    response = requests.post(
+        appsync_url,
+        headers=headers,
+        json={'query': query, 'variables': variables}
+    )
+    
+    if response.status_code == 200:
+        data = response.json()
+        created_at = data.get('data', {}).get('getUVA', {}).get('createdAt')
         return int(datetime.fromisoformat(created_at.replace('Z', '+00:00')).timestamp() * 1000) if created_at else None
     else:
         return None
