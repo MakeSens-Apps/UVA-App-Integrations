@@ -18,7 +18,7 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["UvaToCloudFunction"]
 
-[function_build_definitions.72dff064-0227-4b0d-a834-88ba97b74f1c]
+[function_build_definitions.ef18676d-f2bc-4e39-a6e9-2cee1c96c1c3]
 codeuri = "/home/miguelta281/MakeSens/UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/uvaConnection"
 runtime = "python3.9"
 architecture = "x86_64"

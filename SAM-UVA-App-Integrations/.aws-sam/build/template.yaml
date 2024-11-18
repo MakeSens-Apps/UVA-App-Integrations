@@ -134,7 +134,7 @@ Resources:
         MyAPIGatewayEvent:
           Type: Api
           Properties:
-            Path: /connection/{id_uva}
+            Path: /{id_uva}/connection
             Method: GET
             Auth:
               Authorizer: AWS_IAM
