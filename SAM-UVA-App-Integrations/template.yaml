@@ -29,17 +29,32 @@ Parameters:
   # Parametros de integración con Cloud
   UVADynamoDBStreamARN:
     Type: String
-    Default: arn:aws:dynamodb:us-east-1:913045965320:table/UVA-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-11-06T21:41:10.661
+    Default: arn:aws:dynamodb:us-east-1:913045965320:table/UVA-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:00.864
   RACIMOTableName:
     Type: String
-    Default: RACIMO-uqr6xntysfa3lbguhirvcj3pa4-develop
+    Default: RACIMO-yxrlo7mqf5bn7cuqqgssoprqam-test
   OrganizationName:
     Type: String
     Default: Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+  LocationName:
+    Type: String
+    Default: Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+  CloudAppsyncUrl:
+    Type: String
+    Default: https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql
+  CloudApiKey:
+    Type: String
+    Default: da2-xxuxsrmjcrfcvetkb2wbvbe6sm
   # UserAPI (Connection)
   MeasurementName:
     Type: String
-    Default: Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop
+    Default: Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test
+  UvaAppsyncUrl:
+    Type: String
+    Default: https://s4v4oryo25dklefaiecnoewqwy.appsync-api.us-east-1.amazonaws.com/graphql
+  UvaApiKey:
+    Type: String
+    Default: da2-3baiqrhl3vaixczpr2g7jb376e
 
 
 Resources:
@@ -117,12 +132,16 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:GetItem
               Resource: 
-                - arn:aws:dynamodb:us-east-1:913045965320:table/RACIMO-uqr6xntysfa3lbguhirvcj3pa4-develop
-                - arn:aws:dynamodb:us-east-1:913045965320:table/Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${RACIMOTableName}
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${OrganizationName}
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${LocationName}
       Environment:
         Variables:    
           RACIMOTable: !Ref RACIMOTableName
-          OrganizationTable: !Ref OrganizationName
+          OrganizationTable: !Ref OrganizationName 
+          LocationTable: !Ref LocationName
+          AppSyncURL: !Ref CloudAppsyncUrl
+          ApiKey: !Ref CloudApiKey
   
   UVALastConnection: 
     Type: 'AWS::Serverless::Function'
@@ -147,6 +166,10 @@ Resources:
               Action:
                 - appsync:GraphQL
               Resource: '*'
+      Environment:
+        Variables:    
+          AppSyncURL: !Ref UvaAppsyncUrl
+          ApiKey: !Ref UvaApiKey
 
 
       

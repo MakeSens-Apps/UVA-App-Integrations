@@ -8,18 +8,21 @@ dynamodb = boto3.resource('dynamodb')
 def lambda_handler(event, context):
     racimoTable = os.environ['RACIMOTable']
     organizationTable = os.environ['OrganizationTable']
+    locationTable =  os.environ['LocationTable']
+    appsync_url = os.environ['AppSyncURL']
+    api_key = os.environ['ApiKey']
     
     # Evaluar todos los eventos
     records = event['Records']
     for record in records:
         # Si es un INSERT
         if record['eventName'] == 'INSERT': 
-            process_insert_event(record, racimoTable, organizationTable)
+            process_insert_event(record, racimoTable, organizationTable, appsync_url, api_key)
         elif record['eventName'] == 'MODIFY': 
-            pass
+            process_modify_event(record, locationTable, appsync_url, api_key)
 
 # Event ISERT
-def process_insert_event(record, racimoTable, organizationTable):
+def process_insert_event(record, racimoTable, organizationTable, appsync_url, api_key):
     """
     Procesa un registro de tipo INSERT de DynamoDB Streams.
     Extrae el racimoID del registro y obtiene el LinkageCode de DynamoDB.
@@ -45,13 +48,41 @@ def process_insert_event(record, racimoTable, organizationTable):
     organization_id = get_organization_id(organizationTable, linkage_code)
     
     # Crear un nuevo dispositivo vinculado a dicha organización
-    create_device(uva_id, organization_id)
+    create_device(uva_id, organization_id, appsync_url, api_key)
 
 # Event MODIFY
-def process_modify_event(record, racimoTable):
-    pass
+def process_modify_event(record,locationTable, appsync_url, api_key):
+    uva_id = extract_uva_id(record)
+    location = extract_location(record)
+
+    if all(value is not None for value in location.values()):
+        # Validar si ya esta la ubicación de la UVA creada
+        uva_created = get_uva_location(uva_id, locationTable)
+        print(uva_created)
+        if uva_created:
+            update_location(uva_id, location, appsync_url, api_key)
+        else:
+            create_location(uva_id, location, appsync_url, api_key)
+            
 
 # Service
+def extract_location(record):
+    """
+    Extrae la latitude y latitude de un registro individual de DynamoDB Streams.
+
+    :param record: Registro individual del evento de DynamoDB Streams.
+    :return: location si existe, de lo contrario None.
+    """
+    try:
+        location = {}
+        if 'NewImage' in record['dynamodb']:
+            location['latitude'] = record['dynamodb']['NewImage'].get('latitude', {}).get('S')
+            location['longitude'] = record['dynamodb']['NewImage'].get('longitude', {}).get('S')
+        return location
+    except KeyError as e:
+        print(f"Clave faltante en el registro: {e}")
+        return None
+
 def extract_uva_id(record):
     """
     Extrae el uva_id de un registro individual de DynamoDB Streams.
@@ -168,7 +199,34 @@ def get_organization_id(table_name, linkage_code):
         print(f"Error al buscar en DynamoDB: {e}")
         return None
 
-def create_device(uva_id, organization_id):
+def get_uva_location(uva_id,table_name):
+    """
+    Consulta DynamoDB para obtener el código de vinculación (LinkageCode) de un racimo por su ID.
+
+    :param table_name: Nombre de la tabla DynamoDB.
+    :param racimo_id: ID del racimo a consultar.
+    :return: Código de vinculación (LinkageCode) o None si no existe.
+    """
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(table_name)
+  
+    try:
+        # Obtener el elemento por su clave primaria
+        response = table.get_item(
+            Key={
+                'id': f"A{uva_id}"  # Clave primaria
+            }
+        )
+        # Retornar el código de vinculación si el elemento existe
+        return 'latitude' in response.get('Item', {})
+    except ClientError:
+        # En caso de error, retornar None
+        return None
+
+    
+# mutations
+
+def create_device(uva_id, organization_id, appsync_url, api_key):
     """
     Crea un dispositivo en el sistema mediante una mutación GraphQL.
 
@@ -178,10 +236,7 @@ def create_device(uva_id, organization_id):
 
     Raises:
         ValueError: Si la respuesta de la API no tiene éxito.
-    """
-    
-    appsync_url = 'https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql'
-    api_key = 'da2-xxuxsrmjcrfcvetkb2wbvbe6sm'
+    """   
 
     # La mutación GraphQL para crear un dispositivo
     mutation = """
@@ -225,5 +280,87 @@ def create_device(uva_id, organization_id):
     else:
         print(f"Error al ejecutar la mutación: {response.status_code}, {response.text}")
 
+def create_location(uva_id, location, appsync_url, api_key):
+    """
+    Crea un dispositivo en el sistema mediante una mutación GraphQL.
 
+    Args:
+        uva_id (str): Identificador único del dispositivo a crear. Este valor se usará para el ID, descripción y nombre del dispositivo.
+        organization_id (str): Identificador único de la organización a la que pertenece el dispositivo.
 
+    Raises:
+        ValueError: Si la respuesta de la API no tiene éxito.
+    """
+    # La mutación GraphQL para crear un dispositivo
+    mutation = """
+    mutation createLocation($id: ID!, $deviceLocationsId: ID!, $latitude: Float, $length: Float) {
+        createLocation(input: {deviceLocationsId: $deviceLocationsId, latitude: $latitude, length: $length, id: $id}) {
+            id
+        }
+        }
+    """
+
+    # Variables para la mutación
+    variables = {
+        "id": f"A{uva_id}",
+        "deviceLocationsId": uva_id,
+        "latitude": location['latitude'],
+        "length": location['longitude']
+    }
+
+    # Encabezados con la API Key
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key  # Usamos el API Key para autenticarnos
+    }
+
+    # Realizar la solicitud POST
+    response = requests.post(
+        appsync_url,
+        headers=headers,
+        json={'query': mutation, 'variables': variables}
+    )
+
+    # Verificar la respuesta
+    if response.status_code == 200:
+        data = response.json()
+        print("Location created successfully:", data)
+    else:
+        print(f"Error al ejecutar la mutación: {response.status_code}, {response.text}")
+
+def update_location(uva_id, location, appsync_url, api_key ):
+    # La mutación GraphQL para crear un dispositivo
+    mutation = """
+    mutation updateLocation($id: ID!,  $latitude: Float, $length: Float) {
+        updateLocation(input: {latitude: $latitude, length: $length, id: $id}) {
+            id
+          }
+        }
+    """
+
+    # Variables para la mutación
+    variables = {
+        "id": f"A{uva_id}",
+        "latitude": location['latitude'],
+        "length": location['longitude']
+    }
+
+    # Encabezados con la API Key
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key  # Usamos el API Key para autenticarnos
+    }
+
+    # Realizar la solicitud POST
+    response = requests.post(
+        appsync_url,
+        headers=headers,
+        json={'query': mutation, 'variables': variables}
+    )
+
+    # Verificar la respuesta
+    if response.status_code == 200:
+        data = response.json()
+        print("Location update successfully:", data)
+    else:
+        print(f"Error al ejecutar la mutación: {response.status_code}, {response.text}")

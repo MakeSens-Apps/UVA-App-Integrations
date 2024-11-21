@@ -9,7 +9,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322\""
+parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322\" UVADynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/UVA-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:00.864\" RACIMOTableName=\"RACIMO-yxrlo7mqf5bn7cuqqgssoprqam-test\" OrganizationName=\"Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" LocationName=\"Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" MeasurementName=\"Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test\""
 image_repositories = []
 
 # Configuración para la rama test
