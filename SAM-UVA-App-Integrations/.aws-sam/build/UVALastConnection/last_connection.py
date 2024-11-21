@@ -133,9 +133,8 @@ def get_last_connection(uva_id, appsync_url, api_key):
     
     if response.status_code == 200:
         data = response.json()
-        print(data)
         items = data.get('data', {}).get('measurementsByUvaIDAndTs', {}).get('items', [])
-        created_at = items[0].get('createdAt') if items else None
+        created_at = items[0].get('ts') if items else None
         if created_at:
             return int(datetime.fromisoformat(created_at.replace('Z', '+00:00')).timestamp() * 1000) if created_at else None
         else:

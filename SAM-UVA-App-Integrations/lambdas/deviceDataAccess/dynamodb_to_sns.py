@@ -46,7 +46,7 @@ def process_data(record):
         new_image = remove_data_types(record['dynamodb']['NewImage'])
         
         # Convertir 'createdAt' a Unix time en milisegundos
-        dt = datetime.strptime(new_image['createdAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        dt = datetime.strptime(new_image['ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
         
         # Crear el nuevo registro con los valores necesarios
         new_record = {
