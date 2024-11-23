@@ -25,7 +25,7 @@ Parameters:
     Default: us-east-1
   MeasurementDynamoDBStreamARN:
     Type: String
-    Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+    Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140
   # Parametros de integración con Cloud
   UVADynamoDBStreamARN:
     Type: String
