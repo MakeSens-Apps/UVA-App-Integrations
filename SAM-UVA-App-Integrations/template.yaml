@@ -6,6 +6,7 @@ Description: >
  de MakeSens: 
  1. DeviceDataAcces
  2. MakeSensCloud
+ 3. UserAPI (Connection)
 
 Globals:
   Function:
@@ -15,18 +16,46 @@ Globals:
         - x86_64
     Timeout: 600
 Parameters:
+  # Parametros de integración con DeviceDataAccess
   SNSTopicARN:
     Type: String
     Default: arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop 
   TopicRegion:
     Type: String
     Default: us-east-1
-  DynamoDBStreamARN:
+  MeasurementDynamoDBStreamARN:
     Type: String
     Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+  # Parametro de app para el entorno
+  AppId:
+    Type: String
+    Default: uqr6xntysfa3lbguhirvcj3pa4
+  # Parametros de integración con Cloud
+  UVADynamoDBStreamARN:
+    Type: String
+    Default: arn:aws:dynamodb:us-east-1:913045965320:table/UVA-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-11-06T21:41:10.661
+  OrganizationName:
+    Type: String
+    Default: Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+  LocationName:
+    Type: String
+    Default: Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
+  CloudAppsyncUrl:
+    Type: String
+    Default: https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql
+  CloudApiKey:
+    Type: String
+    Default: da2-xxuxsrmjcrfcvetkb2wbvbe6sm
+  # UserAPI (Connection)
+  UvaAppsyncUrl:
+    Type: String
+    Default: https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql
+  UvaApiKey:
+    Type: String
+    Default: da2-ocpxiy4zsncszex4m7lepzxgnq
 
 Resources:
-  # Lambda function to process DynamoDB events
+  # DeviceDataAccess
   DynamoDBEventProcessorFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -36,7 +65,7 @@ Resources:
         DynamoDBStreamEvent:
           Type: DynamoDB
           Properties:
-            Stream: !Ref DynamoDBStreamARN 
+            Stream: !Ref MeasurementDynamoDBStreamARN
             StartingPosition: LATEST
             BatchSize: 10
             MaximumBatchingWindowInSeconds: 10
@@ -54,7 +83,7 @@ Resources:
                 - dynamodb:GetRecords
                 - dynamodb:GetShardIterator
                 - dynamodb:DescribeStream
-              Resource: !Ref DynamoDBStreamARN 
+              Resource: !Ref MeasurementDynamoDBStreamARN
             - Sid: "SNSPublishAccess"
               Effect: Allow
               Action:
@@ -63,3 +92,107 @@ Resources:
       Environment:
         Variables:    
           SNSTopicARN: !Ref SNSTopicARN
+
+  # Cloud
+  UvaToCloudFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: lambdas/cloud
+      Handler: test.lambda_handler
+      Events:
+        DynamoDBStreamEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !Ref UVADynamoDBStreamARN
+            StartingPosition: LATEST
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 10
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Sid: "DynamoDBStreamAccess"
+              Effect: Allow
+              Action:
+                - dynamodb:ListStreams
+              Resource: '*'
+            - Sid: "DynamoDBStreamSpecificAccess"
+              Effect: Allow
+              Action:
+                - dynamodb:GetRecords
+                - dynamodb:GetShardIterator
+                - dynamodb:DescribeStream
+              Resource: !Ref UVADynamoDBStreamARN
+            - Sid: "DynamoDBReadAccess"
+              Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+                - dynamodb:GetItem
+              Resource: 
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/RACIMO-${AppId}-develop
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${OrganizationName}
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${LocationName}
+      Environment:
+        Variables:    
+          RACIMOTable:
+            Fn::Sub: "RACIMO-${AppId}-develop"
+          OrganizationTable: !Ref OrganizationName 
+          LocationTable: !Ref LocationName
+          AppSyncURL: !Ref CloudAppsyncUrl
+          ApiKey: !Ref CloudApiKey
+  
+  UVALastConnection: 
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: lambdas/uvaConnection
+      Handler: last_connection.lambda_handler
+      Runtime: python3.9
+      Timeout: 600
+      Events: 
+        MyAPIGatewayEvent:
+          Type: Api
+          Properties:
+            Path: /{id_uva}/connection
+            Method: GET
+            Auth:
+              Authorizer: AWS_IAM  
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Sid: "AppSyncAccess"
+              Effect: Allow
+              Action:
+                - appsync:GraphQL
+              Resource: '*'
+      Environment:
+        Variables:    
+          AppSyncURL: !Ref UvaAppsyncUrl
+          ApiKey: !Ref UvaApiKey
+
+# Crear RACIMO
+  CreateRacimo:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: lambdas/createRacimo
+      Handler: create_racimo.lambda_handler
+      Events: 
+        MyAPIGatewayEvent:
+          Type: Api
+          Properties:
+            Path: /CreateRacimo
+            Method: POST
+            Auth:
+              Authorizer: AWS_IAM 
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Sid: "AppSyncGraphQLAccess"
+              Effect: Allow
+              Action:
+                - appsync:GraphQL
+              Resource: 
+                - !Sub "arn:aws:appsync:us-east-1:913045965320:apis/${AppId}/types/Mutation/fields/createRACIMO"
+                - !Sub "arn:aws:appsync:us-east-1:913045965320:apis/${AppId}/types/Query/fields/listRACIMOS"
+      Environment:
+        Variables:    
+          AppSyncURL: !Ref UvaAppsyncUrl
