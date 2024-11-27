@@ -1,6 +1,4 @@
 version = 0.1
-
-# Configuración para la rama develop
 [default.deploy.parameters]
 stack_name = "UVA-App-Integrations-develop"
 resolve_s3 = true
@@ -9,10 +7,9 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140\""
+parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322\" AppId=\"uqr6xntysfa3lbguhirvcj3pa4\" UVADynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/UVA-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-11-06T21:41:10.661\" OrganizationName=\"Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" LocationName=\"Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" CloudAppsyncUrl=\"https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql\" CloudApiKey=\"da2-xxuxsrmjcrfcvetkb2wbvbe6sm\" UvaAppsyncUrl=\"https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql\" UvaApiKey=\"da2-ocpxiy4zsncszex4m7lepzxgnq\""
 image_repositories = []
 
-# Configuración para la rama test
 [test.deploy.parameters]
 stack_name = "UVA-App-Integrations-test"
 resolve_s3 = true
@@ -21,10 +18,10 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140\""
+parameter_overrides="SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140\" AppId=\"yxrlo7mqf5bn7cuqqgssoprqam\" UVADynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/UVA-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:00.864\" OrganizationName=\"Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" LocationName=\"Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" CloudAppsyncUrl=\"https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql\" CloudApiKey=\"da2-xxuxsrmjcrfcvetkb2wbvbe6sm\" UvaAppsyncUrl=\"https://s4v4oryo25dklefaiecnoewqwy.appsync-api.us-east-1.amazonaws.com/graphql\" UvaApiKey=\"da2-3baiqrhl3vaixczpr2g7jb376e\""
 image_repositories = []
 
-# Configuración para la rama test
+
 [main.deploy.parameters]
 stack_name = "UVA-App-Integrations-main"
 resolve_s3 = true
@@ -33,5 +30,5 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:47.539\""
+parameter_overrides="SNSTopicARN=\"arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop\" TopicRegion=\"us-east-1\" MeasurementDynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:47.539\" AppId=\"mloaox4nvbaa5jf2gf36ggj2hy\" UVADynamoDBStreamARN=\"arn:aws:dynamodb:us-east-1:913045965320:table/UVA-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:48.170\" OrganizationName=\"Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" LocationName=\"Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer\" CloudAppsyncUrl=\"https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql\" CloudApiKey=\"da2-xxuxsrmjcrfcvetkb2wbvbe6sm\" UvaAppsyncUrl=\"https://hrtiuytl75hqzlx3zyk3kxlkgm.appsync-api.us-east-1.amazonaws.com/graphql\" UvaApiKey=\"da2-6srd3nioefewjeqqus35rzazyu\""
 image_repositories = []

@@ -49,7 +49,6 @@ def lambda_handler(event, context):
 
 def create_racimo(linkage_code, name, graphql_api):
     # Validar si existe un RACIMO
-    #graphql_api = "https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql"
     region = "us-east-1"
 
     query = """
@@ -98,7 +97,6 @@ def create_racimo(linkage_code, name, graphql_api):
 
 def check_racimo_exists(linkage_code, graphql_api):
     # Validar si existe un RACIMO
-    #graphql_api = "https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql"
     region = "us-east-1"
 
     query = """

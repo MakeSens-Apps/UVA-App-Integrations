@@ -20,13 +20,13 @@ Parameters:
     Default: us-east-1
   MeasurementDynamoDBStreamARN:
     Type: String
-    Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140
+    Default: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322
+  AppId:
+    Type: String
+    Default: uqr6xntysfa3lbguhirvcj3pa4
   UVADynamoDBStreamARN:
     Type: String
-    Default: arn:aws:dynamodb:us-east-1:913045965320:table/UVA-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:00.864
-  RACIMOTableName:
-    Type: String
-    Default: RACIMO-yxrlo7mqf5bn7cuqqgssoprqam-test
+    Default: arn:aws:dynamodb:us-east-1:913045965320:table/UVA-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-11-06T21:41:10.661
   OrganizationName:
     Type: String
     Default: Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer
@@ -39,15 +39,12 @@ Parameters:
   CloudApiKey:
     Type: String
     Default: da2-xxuxsrmjcrfcvetkb2wbvbe6sm
-  MeasurementName:
-    Type: String
-    Default: Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test
   UvaAppsyncUrl:
     Type: String
-    Default: https://s4v4oryo25dklefaiecnoewqwy.appsync-api.us-east-1.amazonaws.com/graphql
+    Default: https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql
   UvaApiKey:
     Type: String
-    Default: da2-3baiqrhl3vaixczpr2g7jb376e
+    Default: da2-ocpxiy4zsncszex4m7lepzxgnq
 Resources:
   DynamoDBEventProcessorFunction:
     Type: AWS::Serverless::Function
@@ -128,13 +125,13 @@ Resources:
           - dynamodb:Scan
           - dynamodb:GetItem
           Resource:
-          - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${RACIMOTableName}
+          - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/RACIMO-${AppId}-develop
           - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${OrganizationName}
           - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${LocationName}
       Environment:
         Variables:
           RACIMOTable:
-            Ref: RACIMOTableName
+            Fn::Sub: RACIMO-${AppId}-develop
           OrganizationTable:
             Ref: OrganizationName
           LocationTable:
@@ -197,10 +194,11 @@ Resources:
           Action:
           - appsync:GraphQL
           Resource:
-          - arn:aws:appsync:us-east-1:913045965320:apis/uqr6xntysfa3lbguhirvcj3pa4/types/Mutation/fields/createRACIMO
-          - arn:aws:appsync:us-east-1:913045965320:apis/uqr6xntysfa3lbguhirvcj3pa4/types/Query/fields/listRACIMOS
+          - Fn::Sub: arn:aws:appsync:us-east-1:913045965320:apis/${AppId}/types/Mutation/fields/createRACIMO
+          - Fn::Sub: arn:aws:appsync:us-east-1:913045965320:apis/${AppId}/types/Query/fields/listRACIMOS
       Environment:
         Variables:
-          AppSyncURL: https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql
+          AppSyncURL:
+            Ref: UvaAppsyncUrl
     Metadata:
       SamResourceId: CreateRacimo
