@@ -176,3 +176,31 @@ Resources:
             Ref: UvaApiKey
     Metadata:
       SamResourceId: UVALastConnection
+  CreateRacimo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateRacimo
+      Handler: create_racimo.lambda_handler
+      Events:
+        MyAPIGatewayEvent:
+          Type: Api
+          Properties:
+            Path: /CreateRacimo
+            Method: POST
+            Auth:
+              Authorizer: AWS_IAM
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Sid: AppSyncGraphQLAccess
+          Effect: Allow
+          Action:
+          - appsync:GraphQL
+          Resource:
+          - arn:aws:appsync:us-east-1:913045965320:apis/uqr6xntysfa3lbguhirvcj3pa4/types/Mutation/fields/createRACIMO
+          - arn:aws:appsync:us-east-1:913045965320:apis/uqr6xntysfa3lbguhirvcj3pa4/types/Query/fields/listRACIMOS
+      Environment:
+        Variables:
+          AppSyncURL: https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql
+    Metadata:
+      SamResourceId: CreateRacimo
