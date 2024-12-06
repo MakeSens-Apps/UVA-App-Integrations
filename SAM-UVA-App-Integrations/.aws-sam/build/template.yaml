@@ -125,13 +125,13 @@ Resources:
           - dynamodb:Scan
           - dynamodb:GetItem
           Resource:
-          - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/RACIMO-${AppId}-develop
+          - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/RACIMO-${AppId}
           - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${OrganizationName}
           - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${LocationName}
       Environment:
         Variables:
           RACIMOTable:
-            Fn::Sub: RACIMO-${AppId}-develop
+            Fn::Sub: RACIMO-${AppId}
           OrganizationTable:
             Ref: OrganizationName
           LocationTable:

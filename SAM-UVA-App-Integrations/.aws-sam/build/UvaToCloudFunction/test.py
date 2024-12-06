@@ -11,8 +11,6 @@ def lambda_handler(event, context):
     locationTable =  os.environ['LocationTable']
     appsync_url = os.environ['AppSyncURL']
     api_key = os.environ['ApiKey']
-
-    print(racimoTable)
     
     # Evaluar todos los eventos
     records = event['Records']
@@ -35,23 +33,19 @@ def process_insert_event(record, racimoTable, organizationTable, appsync_url, ap
     """
     #Obtener el Id de la UVA del evento
     uva_id = extract_uva_id(record)
-    print(uva_id)
 
     # Obtener el ID del Racimo del evento
     racimo_id = extract_racimo_id(record)
-    print(racimo_id)
     if not racimo_id:
         return "No se encontró racimoID en el evento."
 
     # Obtener el código de vinculación del racimo
     linkage_code = get_linkage_code(racimoTable, racimo_id)
-    print(linkage_code)
     if not linkage_code:
         return "El RACIMO no tiene un código de vinculación."
     
     # Obtener el ID de la organización asociada a la UVA 
     organization_id = get_organization_id(organizationTable, linkage_code)
-    print(organization_id)
     # Crear un nuevo dispositivo vinculado a dicha organización
     create_device(uva_id, organization_id, appsync_url, api_key)
 
