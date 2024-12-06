@@ -46,7 +46,7 @@ def process_insert_event(record, racimoTable, organizationTable, appsync_url, ap
     
     # Obtener el ID de la organización asociada a la UVA 
     organization_id = get_organization_id(organizationTable, linkage_code)
-    
+    print(organization_id)
     # Crear un nuevo dispositivo vinculado a dicha organización
     create_device(uva_id, organization_id, appsync_url, api_key)
 
@@ -62,8 +62,7 @@ def process_modify_event(record,locationTable, appsync_url, api_key):
         if uva_created:
             update_location(uva_id, location, appsync_url, api_key)
         else:
-            create_location(uva_id, location, appsync_url, api_key)
-            
+            create_location(uva_id, location, appsync_url, api_key)         
 
 # Service
 def extract_location(record):
