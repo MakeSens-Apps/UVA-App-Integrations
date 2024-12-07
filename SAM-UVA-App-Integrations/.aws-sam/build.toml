@@ -9,4 +9,31 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["DynamoDBEventProcessorFunction"]
 
+[function_build_definitions.fbc1d726-e919-44ab-9283-19a0e5707a06]
+codeuri = "/home/miguelta281/MakeSens/UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/cloud"
+runtime = "python3.9"
+architecture = "x86_64"
+handler = "test.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UvaToCloudFunction"]
+
+[function_build_definitions.3ceab671-744c-47ba-b1fd-1c97f851bfb9]
+codeuri = "/home/miguelta281/MakeSens/UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/uvaConnection"
+runtime = "python3.9"
+architecture = "x86_64"
+handler = "last_connection.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UVALastConnection"]
+
+[function_build_definitions.228c0890-6d05-4e13-9edc-fb389ef784a3]
+codeuri = "/home/miguelta281/MakeSens/UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/createRacimo"
+runtime = "python3.9"
+architecture = "x86_64"
+handler = "create_racimo.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["CreateRacimo"]
+
 [layer_build_definitions]
