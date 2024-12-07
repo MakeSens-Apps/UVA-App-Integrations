@@ -30,6 +30,9 @@ Parameters:
   AppId:
     Type: String
     Default: uqr6xntysfa3lbguhirvcj3pa4
+  RacimoName:
+    Type: String
+    Default: RACIMO-uqr6xntysfa3lbguhirvcj3pa4-develop
   # Parametros de integración con Cloud
   UVADynamoDBStreamARN:
     Type: String
@@ -129,13 +132,12 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:GetItem
               Resource: 
-                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/RACIMO-${AppId}
+                - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${RacimoName}
                 - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${OrganizationName}
                 - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${LocationName}
       Environment:
         Variables:    
-          RACIMOTable:
-            Fn::Sub: "RACIMO-${AppId}"
+          RACIMOTable: !Ref RacimoName
           OrganizationTable: !Ref OrganizationName 
           LocationTable: !Ref LocationName
           AppSyncURL: !Ref CloudAppsyncUrl
