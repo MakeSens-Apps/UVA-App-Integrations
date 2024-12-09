@@ -1,21 +1,31 @@
 #!/bin/bash
 
 # Detecta la rama activa
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+ENVIRONMENT=$(git rev-parse --abbrev-ref HEAD)
 
-# Determina el entorno basado en la rama
-if [ "$BRANCH" == "develop" ]; then
-    ENVIRONMENT="default"  # Usa configuración [default.deploy.parameters] para develop
-elif [ "$BRANCH" == "test" ]; then
-    ENVIRONMENT="test"  # Usa configuración [test.deploy.parameters] para test
-elif [ "$BRANCH" == "main" ]; then
-    ENVIRONMENT="main"  # Usa configuración [main.deploy.parameters] para main
-else
-    echo "Branch no reconocida para despliegue automatizado: $BRANCH"
-    exit 1
-fi
+# Cargar parámetros del entorno desde el archivo JSON
+STACK_NAME=$(jq -r ".${ENVIRONMENT}.stack_name" parameters.json)
+REGION=$(jq -r ".${ENVIRONMENT}.region" parameters.json)
+CONFIRM_CHANGESET=$(jq -r ".${ENVIRONMENT}.confirm_changeset" parameters.json)
+CAPABILITIES=$(jq -r ".${ENVIRONMENT}.capabilities" parameters.json)
+DISABLE_ROLLBACK=$(jq -r ".${ENVIRONMENT}.disable_rollback" parameters.json)
+PARAM_OVERRIDES=$(jq -r ".${ENVIRONMENT}.parameter_overrides" parameters.json)
 
-# Ejecuta el despliegue usando el entorno detectado
+
+PARAM_OVERRIDES=$(jq -r "to_entries | map(\"\(.key)=\(.value|tostring)\") | join(\" \")" <<< "$(jq -c .${ENVIRONMENT}.parameter_overrides parameters.json)")
+
+# Ejecuta el despliegue usando SAM y parámetros cargados desde el archivo JSON
 sam validate
 sam build
-sam deploy --config-env "$ENVIRONMENT" --no-confirm-changeset
+
+sam deploy \
+    --stack-name "$STACK_NAME" \
+    --region "$REGION" \
+    --confirm-changeset "$CONFIRM_CHANGESET" \
+    --capabilities "$CAPABILITIES" \
+    --disable-rollback "$DISABLE_ROLLBACK" \
+    --parameter-overrides $PARAM_OVERRIDES \
+    --resolve-s3 \
+    --no-confirm-changeset
+
+echo "Despliegue completado en el entorno '$ENVIRONMENT'."

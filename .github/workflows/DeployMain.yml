@@ -34,6 +34,12 @@ jobs:
           pyenv global 3.9.20  # Establecer Python 3.9.20 como global
           python --version  # Verificar que Python 3.9 esté correctamente instalado
 
+      - name: Install jq
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq  # Instalar jq para procesar archivos JSON
+          jq --version  # Verificar la instalación de jq
+
       - name: Install aws-sam-cli
         run: |
           python -m pip install --upgrade pip  # Asegura que pip está actualizado

@@ -22,7 +22,7 @@ def lambda_handler(event, context):
             process_modify_event(record, locationTable, appsync_url, api_key)
 
 # Event ISERT
-def process_insert_event(record, racimoTable, organizationTable, appsync_url, api_key):
+def process_insert_event(record: dict, racimoTable: str, organizationTable: str, appsync_url: str, api_key: str):
     """
     Procesa un registro de tipo INSERT de DynamoDB Streams.
     Extrae el racimoID del registro y obtiene el LinkageCode de DynamoDB.

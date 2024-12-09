@@ -95,7 +95,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: UvaToCloudFunction
-      Handler: test.lambda_handler
+      Handler: uva_to_cloud.lambda_handler
       Events:
         DynamoDBStreamEvent:
           Type: DynamoDB

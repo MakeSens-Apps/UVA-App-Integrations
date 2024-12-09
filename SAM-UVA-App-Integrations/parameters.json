@@ -1,0 +1,63 @@
+{
+    "develop": {
+      "stack_name": "UVA-App-Integrations-develop",
+      "region": "us-east-1",
+      "confirm_changeset": true,
+      "capabilities": "CAPABILITY_IAM",
+      "disable_rollback": true,
+      "parameter_overrides": {
+        "SNSTopicARN": "arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop",
+        "TopicRegion": "us-east-1",
+        "MeasurementDynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-09-29T16:18:49.322",
+        "AppId": "uqr6xntysfa3lbguhirvcj3pa4",
+        "UVADynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/UVA-uqr6xntysfa3lbguhirvcj3pa4-develop/stream/2024-11-06T21:41:10.661",
+        "RacimoName": "RACIMO-uqr6xntysfa3lbguhirvcj3pa4-develop",
+        "OrganizationName": "Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
+        "LocationName": "Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
+        "CloudAppsyncUrl": "https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql",
+        "CloudApiKey": "da2-xxuxsrmjcrfcvetkb2wbvbe6sm"
+      },
+      "image_repositories": []
+    },
+    "test": {
+      "stack_name": "UVA-App-Integrations-test",
+      "region": "us-east-1",
+      "confirm_changeset": true,
+      "capabilities": "CAPABILITY_IAM",
+      "disable_rollback": true,
+      "parameter_overrides": {
+        "SNSTopicARN": "arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop",
+        "TopicRegion": "us-east-1",
+        "MeasurementDynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:01.140",
+        "AppId": "yxrlo7mqf5bn7cuqqgssoprqam",
+        "UVADynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/UVA-yxrlo7mqf5bn7cuqqgssoprqam-test/stream/2024-09-29T16:19:00.864",
+        "RacimoName": "RACIMO-yxrlo7mqf5bn7cuqqgssoprqam-test",
+        "OrganizationName": "Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
+        "LocationName": "Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
+        "CloudAppsyncUrl": "https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql",
+        "CloudApiKey": "da2-xxuxsrmjcrfcvetkb2wbvbe6sm"
+      },
+      "image_repositories": []
+    },
+    "main": {
+      "stack_name": "UVA-App-Integrations-main",
+      "region": "us-east-1",
+      "confirm_changeset": true,
+      "capabilities": "CAPABILITY_IAM",
+      "disable_rollback": true,
+      "parameter_overrides": {
+        "SNSTopicARN": "arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData",
+        "TopicRegion": "us-east-1",
+        "MeasurementDynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:47.539",
+        "AppId": "mloaox4nvbaa5jf2gf36ggj2hy",
+        "UVADynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/UVA-mloaox4nvbaa5jf2gf36ggj2hy-main/stream/2024-09-29T16:18:48.170",
+        "RacimoName": "RACIMO-mloaox4nvbaa5jf2gf36ggj2hy-test",
+        "OrganizationName": "Organization-qqdwq2ezs5h35kp6wifhzjy3jm-main",
+        "LocationName": "Location-qqdwq2ezs5h35kp6wifhzjy3jm-main",
+        "CloudAppsyncUrl": "https://sw3pr4l65rauzoufoyt527hwk4.appsync-api.us-east-1.amazonaws.com/graphql",
+        "CloudApiKey": "da2-5ebwyrd6hzdvxkrh3m6bi3s2li"
+      },
+      "image_repositories": []
+    }
+  }
+  
