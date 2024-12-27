@@ -49,7 +49,7 @@
         "SNSTopicARN": "arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData",
         "TopicRegion": "us-east-1",
         "MeasurementDynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-xt4kcqcowrg2jf7gw265wiid3q-main/stream/2024-12-27T16:08:28.006",
-        "AppId": "da2-txefqlqrxfhknhjgu2ievhguge",
+        "AppId": "xt4kcqcowrg2jf7gw265wiid3q",
         "UVADynamoDBStreamARN": "arn:aws:dynamodb:us-east-1:913045965320:table/UVA-xt4kcqcowrg2jf7gw265wiid3q-main/stream/2024-12-27T16:09:15.901",
         "RacimoName": "RACIMO-xt4kcqcowrg2jf7gw265wiid3q-main",
         "OrganizationName": "Organization-qqdwq2ezs5h35kp6wifhzjy3jm-main",
