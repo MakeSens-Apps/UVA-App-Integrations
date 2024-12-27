@@ -15,7 +15,9 @@
         "OrganizationName": "Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
         "LocationName": "Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
         "CloudAppsyncUrl": "https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql",
-        "CloudApiKey": "da2-xxuxsrmjcrfcvetkb2wbvbe6sm"
+        "CloudApiKey": "da2-xxuxsrmjcrfcvetkb2wbvbe6sm",
+        "UvaAppsyncUrl": "https://swmmbj4xmfa5pelhgbljkxonuu.appsync-api.us-east-1.amazonaws.com/graphql",
+        "UvaApiKey": "da2-ocpxiy4zsncszex4m7lepzxgnq"
       },
       "image_repositories": []
     },
@@ -35,7 +37,9 @@
         "OrganizationName": "Organization-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
         "LocationName": "Location-rtjffhw6ejhs7n5cxqjmxs6gzq-developer",
         "CloudAppsyncUrl": "https://bnbto5gmgvcazhjsrxdsviyv74.appsync-api.us-east-1.amazonaws.com/graphql",
-        "CloudApiKey": "da2-xxuxsrmjcrfcvetkb2wbvbe6sm"
+        "CloudApiKey": "da2-xxuxsrmjcrfcvetkb2wbvbe6sm",
+        "UvaAppsyncUrl": "https://s4v4oryo25dklefaiecnoewqwy.appsync-api.us-east-1.amazonaws.com/graphql",
+        "UvaApiKey": "da2-3baiqrhl3vaixczpr2g7jb376e"
       },
       "image_repositories": []
     },
@@ -55,9 +59,11 @@
         "OrganizationName": "Organization-qqdwq2ezs5h35kp6wifhzjy3jm-main",
         "LocationName": "Location-qqdwq2ezs5h35kp6wifhzjy3jm-main",
         "CloudAppsyncUrl": "https://sw3pr4l65rauzoufoyt527hwk4.appsync-api.us-east-1.amazonaws.com/graphql",
-        "CloudApiKey": "da2-5ebwyrd6hzdvxkrh3m6bi3s2li"
+        "CloudApiKey": "da2-5ebwyrd6hzdvxkrh3m6bi3s2li",
+        "UvaAppsyncUrl": "https://iifnqxdvi5dtxm73slwddeccha.appsync-api.us-east-1.amazonaws.com/graphql",
+        "UvaApiKey": "da2-txefqlqrxfhknhjgu2ievhguge"
       },
       "image_repositories": []
     }
   }
-  
+   
