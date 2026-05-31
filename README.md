@@ -162,11 +162,15 @@ UVA-App-Integrations/
 ## Documentación
 
 Para documentación técnica detallada, consulta la carpeta `/docs`:
-- [Arquitectura](docs/architecture.md) - Diseño del sistema y diagramas de componentes
-- [Funcionalidades](docs/features.md) - Descripciones detalladas de las funcionalidades
-- [Funciones Lambda](docs/lambdas.md) - Especificaciones de las funciones Lambda
-- [Base de Datos](docs/database.md) - Esquema DynamoDB y modelo de datos
-- [Infraestructura](docs/infrastructure.md) - Recursos y configuraciones de AWS
+- [Índice de documentación](docs/README.md) - Guía de navegación completa
+- [Arquitectura](docs/architecture/ARCHITECTURE.md) - Diseño del sistema y diagramas de componentes
+- [Módulos Lambda](docs/architecture/MODULES.md) - Especificaciones de las funciones Lambda
+- [Endpoints y Eventos](docs/api/ENDPOINTS.md) - API REST y eventos DynamoDB Streams
+- [Modelos de Datos](docs/data/MODELS.md) - Esquema DynamoDB y modelo de datos
+- [Flujo de Datos](docs/data/FLOW.md) - Flujos de datos extremo a extremo
+- [Configuración](docs/configuration/ENVIRONMENT.md) - Variables de entorno y parámetros SAM
+- [Despliegue](docs/deployment/DEPLOYMENT.md) - Recursos y proceso de despliegue AWS
+- [Operación](docs/operation/FLOW.md) - Ciclo operacional, errores y mantenimiento
 
 ## Licencia
 
