@@ -1,44 +1,44 @@
-# Database
+# Base de Datos
 
-## Overview
+## Descripción General
 
-UVA-App-Integrations uses **Amazon DynamoDB**, a fully managed NoSQL database service, for all data storage. The system interacts with multiple tables for device metadata, measurements, organizational structures, and locations.
+UVA-App-Integrations utiliza **Amazon DynamoDB**, un servicio de base de datos NoSQL completamente administrado, para todo el almacenamiento de datos. El sistema interactúa con múltiples tablas para metadatos de dispositivos, mediciones, estructuras organizacionales y ubicaciones.
 
-**Database Type**: Amazon DynamoDB (NoSQL, Key-Value and Document Store)
-**Region**: us-east-1
-**Billing Mode**: On-demand or Provisioned (configured per environment)
+**Tipo de Base de Datos**: Amazon DynamoDB (NoSQL, Almacén de Clave-Valor y Documentos)
+**Región**: us-east-1
+**Modo de Facturación**: Bajo demanda o Provisionado (configurado por entorno)
 
 ---
 
-## Tables
+## Tablas
 
-### 1. Measurement Table
+### 1. Tabla Measurement
 
-**Purpose**: Stores time-series sensor data from UVA devices
+**Propósito**: Almacena datos de sensores en series de tiempo de los dispositivos UVA
 
-**Naming Convention**: `Measurement-{AppId}-{env}`
-**Example**: `Measurement-abc123-develop`
+**Convención de Nomenclatura**: `Measurement-{AppId}-{env}`
+**Ejemplo**: `Measurement-abc123-develop`
 
-#### Schema
+#### Esquema
 
-**Primary Key**:
-- **Partition Key**: `id` (String) - UVA device identifier
-- **Sort Key**: `ts` (Number) - Unix timestamp in milliseconds
+**Clave Primaria**:
+- **Clave de Partición**: `id` (String) - Identificador del dispositivo UVA
+- **Clave de Ordenación**: `ts` (Number) - Timestamp Unix en milisegundos
 
-**Attributes**:
+**Atributos**:
 ```json
 {
-  "id": "String",           // UVA device ID (partition key)
-  "ts": "Number",           // Unix timestamp milliseconds (sort key)
-  "type": "String",         // Measurement type (temperature, pressure, etc.)
-  "data": "Map",            // Measurement payload (varies by type)
-  "logs": "List",           // Optional log entries
-  "createdAt": "String",    // ISO 8601 creation timestamp
-  "updatedAt": "String"     // ISO 8601 update timestamp
+  "id": "String",           // ID del dispositivo UVA (clave de partición)
+  "ts": "Number",           // Timestamp Unix en milisegundos (clave de ordenación)
+  "type": "String",         // Tipo de medición (temperatura, presión, etc.)
+  "data": "Map",            // Payload de la medición (varía según el tipo)
+  "logs": "List",           // Entradas de log opcionales
+  "createdAt": "String",    // Timestamp de creación ISO 8601
+  "updatedAt": "String"     // Timestamp de actualización ISO 8601
 }
 ```
 
-**Sample Record**:
+**Registro de Ejemplo**:
 ```json
 {
   "id": "uva123",
@@ -55,62 +55,62 @@ UVA-App-Integrations uses **Amazon DynamoDB**, a fully managed NoSQL database se
 }
 ```
 
-#### Indexes
+#### Índices
 
-**Global Secondary Indexes (GSI)**:
+**Índices Secundarios Globales (GSI)**:
 
-**uvaID-ts-index** (likely exists for queries):
-- **Partition Key**: `uvaID` or `id` (String)
-- **Sort Key**: `ts` (Number)
-- **Purpose**: Query measurements by device ID sorted by time
-- **Projection**: ALL
+**uvaID-ts-index** (probablemente existe para consultas):
+- **Clave de Partición**: `uvaID` o `id` (String)
+- **Clave de Ordenación**: `ts` (Number)
+- **Propósito**: Consultar mediciones por ID de dispositivo ordenadas por tiempo
+- **Proyección**: ALL
 
-**Access Patterns**:
-- Get latest measurement for device: Query by `uvaID`, sort DESC, limit 1
-- Get measurements in time range: Query by `uvaID` with ts BETWEEN
-- Stream processing: DynamoDB Streams capture all INSERT events
+**Patrones de Acceso**:
+- Obtener la última medición de un dispositivo: Consulta por `uvaID`, orden DESC, límite 1
+- Obtener mediciones en un rango de tiempo: Consulta por `uvaID` con ts BETWEEN
+- Procesamiento de stream: DynamoDB Streams captura todos los eventos INSERT
 
-#### Stream Configuration
+#### Configuración de Stream
 
-**Stream Enabled**: Yes
-**Stream View Type**: NEW_IMAGE (captures new record state)
-**Consumers**: DynamoDBEventProcessorFunction Lambda
+**Stream Habilitado**: Sí
+**Tipo de Vista del Stream**: NEW_IMAGE (captura el nuevo estado del registro)
+**Consumidores**: Lambda DynamoDBEventProcessorFunction
 
-**ARN Pattern**:
+**Patrón ARN**:
 ```
 arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-{AppId}-{env}/stream/*
 ```
 
 ---
 
-### 2. UVA Table
+### 2. Tabla UVA
 
-**Purpose**: Device registry storing UVA metadata and configuration
+**Propósito**: Registro de dispositivos que almacena metadatos y configuración de UVA
 
-**Naming Convention**: `UVA-{AppId}-{env}`
-**Example**: `UVA-abc123-develop`
+**Convención de Nomenclatura**: `UVA-{AppId}-{env}`
+**Ejemplo**: `UVA-abc123-develop`
 
-#### Schema
+#### Esquema
 
-**Primary Key**:
-- **Partition Key**: `id` (String) - Unique UVA device identifier
+**Clave Primaria**:
+- **Clave de Partición**: `id` (String) - Identificador único del dispositivo UVA
 
-**Attributes**:
+**Atributos**:
 ```json
 {
-  "id": "String",           // UVA device ID (partition key)
-  "name": "String",         // Device display name
-  "racimoID": "String",     // Foreign key to RACIMO table
-  "latitude": "Number",     // Optional: GPS latitude
-  "longitude": "Number",    // Optional: GPS longitude
-  "status": "String",       // Device status (active, inactive, etc.)
-  "metadata": "Map",        // Additional device properties
-  "createdAt": "String",    // ISO 8601 creation timestamp
-  "updatedAt": "String"     // ISO 8601 update timestamp
+  "id": "String",           // ID del dispositivo UVA (clave de partición)
+  "name": "String",         // Nombre visible del dispositivo
+  "racimoID": "String",     // Clave foránea a la tabla RACIMO
+  "latitude": "Number",     // Opcional: Latitud GPS
+  "longitude": "Number",    // Opcional: Longitud GPS
+  "status": "String",       // Estado del dispositivo (active, inactive, etc.)
+  "metadata": "Map",        // Propiedades adicionales del dispositivo
+  "createdAt": "String",    // Timestamp de creación ISO 8601
+  "updatedAt": "String"     // Timestamp de actualización ISO 8601
 }
 ```
 
-**Sample Record**:
+**Registro de Ejemplo**:
 ```json
 {
   "id": "uva123",
@@ -128,56 +128,56 @@ arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-{AppId}-{env}/stream/*
 }
 ```
 
-#### Indexes
+#### Índices
 
-**No additional indexes documented** (primary key access only)
+**No se documentan índices adicionales** (solo acceso por clave primaria)
 
-**Access Patterns**:
-- Get UVA by ID: GetItem operation
-- Get creation date: Used by UVALastConnection as fallback
+**Patrones de Acceso**:
+- Obtener UVA por ID: Operación GetItem
+- Obtener fecha de creación: Utilizado por UVALastConnection como fallback
 
-#### Stream Configuration
+#### Configuración de Stream
 
-**Stream Enabled**: Yes
-**Stream View Type**: NEW_AND_OLD_IMAGES (captures before/after state)
-**Consumers**: UvaToCloudFunction Lambda
+**Stream Habilitado**: Sí
+**Tipo de Vista del Stream**: NEW_AND_OLD_IMAGES (captura el estado antes/después)
+**Consumidores**: Lambda UvaToCloudFunction
 
-**ARN Pattern**:
+**Patrón ARN**:
 ```
 arn:aws:dynamodb:us-east-1:913045965320:table/UVA-{AppId}-{env}/stream/*
 ```
 
-**Event Types Processed**:
-- **INSERT**: Triggers device creation in MakeSensCloud
-- **MODIFY**: Triggers location update if lat/lng changed
+**Tipos de Eventos Procesados**:
+- **INSERT**: Dispara la creación del dispositivo en MakeSensCloud
+- **MODIFY**: Dispara la actualización de ubicación si cambian lat/lng
 
 ---
 
-### 3. RACIMO Table
+### 3. Tabla RACIMO
 
-**Purpose**: Stores device clusters/groups with linkage codes for organizational hierarchy
+**Propósito**: Almacena clústeres/grupos de dispositivos con códigos de vinculación para la jerarquía organizacional
 
-**Naming Convention**: `RACIMO-{AppId}-{env}`
-**Example**: `RACIMO-abc123-develop`
+**Convención de Nomenclatura**: `RACIMO-{AppId}-{env}`
+**Ejemplo**: `RACIMO-abc123-develop`
 
-#### Schema
+#### Esquema
 
-**Primary Key**:
-- **Partition Key**: `id` (String) - Unique RACIMO identifier
+**Clave Primaria**:
+- **Clave de Partición**: `id` (String) - Identificador único de RACIMO
 
-**Attributes**:
+**Atributos**:
 ```json
 {
-  "id": "String",           // RACIMO ID (partition key)
-  "name": "String",         // Cluster display name
-  "LinkageCode": "String",  // Unique linkage identifier
-  "path": "String",         // Configuration file path
-  "createdAt": "String",    // ISO 8601 creation timestamp
-  "updatedAt": "String"     // ISO 8601 update timestamp
+  "id": "String",           // ID de RACIMO (clave de partición)
+  "name": "String",         // Nombre visible del clúster
+  "LinkageCode": "String",  // Identificador de vinculación único
+  "path": "String",         // Ruta del archivo de configuración
+  "createdAt": "String",    // Timestamp de creación ISO 8601
+  "updatedAt": "String"     // Timestamp de actualización ISO 8601
 }
 ```
 
-**Sample Record**:
+**Registro de Ejemplo**:
 ```json
 {
   "id": "racimo456",
@@ -189,54 +189,54 @@ arn:aws:dynamodb:us-east-1:913045965320:table/UVA-{AppId}-{env}/stream/*
 }
 ```
 
-#### Indexes
+#### Índices
 
-**Global Secondary Index** (likely for LinkageCode queries):
-- **Partition Key**: `LinkageCode` (String)
-- **Purpose**: Query RACIMO by linkage code for duplicate checking
-- **Used By**: CreateRacimo Lambda
+**Índice Secundario Global** (probable para consultas por LinkageCode):
+- **Clave de Partición**: `LinkageCode` (String)
+- **Propósito**: Consultar RACIMO por código de vinculación para verificar duplicados
+- **Utilizado por**: Lambda CreateRacimo
 
-**Access Patterns**:
-- Get RACIMO by ID: GetItem operation (used by UvaToCloudFunction)
-- Find RACIMO by LinkageCode: Query or Scan with filter (used by CreateRacimo)
+**Patrones de Acceso**:
+- Obtener RACIMO por ID: Operación GetItem (utilizada por UvaToCloudFunction)
+- Encontrar RACIMO por LinkageCode: Consulta o Scan con filtro (utilizada por CreateRacimo)
 
-#### Relationships
+#### Relaciones
 
-**One-to-Many with UVA**:
-- One RACIMO can contain multiple UVA devices
-- UVA.racimoID → RACIMO.id (foreign key)
+**Uno-a-Muchos con UVA**:
+- Un RACIMO puede contener múltiples dispositivos UVA
+- UVA.racimoID → RACIMO.id (clave foránea)
 
-**One-to-One with Organization** (via LinkageCode):
+**Uno-a-Uno con Organization** (vía LinkageCode):
 - RACIMO.LinkageCode = Organization.linkage_code
-- Used to associate devices with organizations
+- Se utiliza para asociar dispositivos con organizaciones
 
 ---
 
-### 4. Organization Table
+### 4. Tabla Organization
 
-**Purpose**: Stores organizational entities for multi-tenant device management
+**Propósito**: Almacena entidades organizacionales para la gestión multi-tenant de dispositivos
 
-**Naming Convention**: `Organization-{AppId}-{env}`
-**Example**: `Organization-abc123-develop`
+**Convención de Nomenclatura**: `Organization-{AppId}-{env}`
+**Ejemplo**: `Organization-abc123-develop`
 
-#### Schema
+#### Esquema
 
-**Primary Key**:
-- **Partition Key**: `id` (String) - Unique organization identifier
+**Clave Primaria**:
+- **Clave de Partición**: `id` (String) - Identificador único de organización
 
-**Attributes**:
+**Atributos**:
 ```json
 {
-  "id": "String",           // Organization ID (partition key)
-  "name": "String",         // Organization name
-  "linkage_code": "String", // Links to RACIMO.LinkageCode
-  "metadata": "Map",        // Additional org properties
-  "createdAt": "String",    // ISO 8601 creation timestamp
-  "updatedAt": "String"     // ISO 8601 update timestamp
+  "id": "String",           // ID de organización (clave de partición)
+  "name": "String",         // Nombre de la organización
+  "linkage_code": "String", // Vincula con RACIMO.LinkageCode
+  "metadata": "Map",        // Propiedades adicionales de la organización
+  "createdAt": "String",    // Timestamp de creación ISO 8601
+  "updatedAt": "String"     // Timestamp de actualización ISO 8601
 }
 ```
 
-**Sample Record**:
+**Registro de Ejemplo**:
 ```json
 {
   "id": "org789",
@@ -251,27 +251,27 @@ arn:aws:dynamodb:us-east-1:913045965320:table/UVA-{AppId}-{env}/stream/*
 }
 ```
 
-#### Indexes
+#### Índices
 
-**Global Secondary Index** (recommended for linkage_code):
-- **Partition Key**: `linkage_code` (String)
-- **Purpose**: Efficiently find organization by linkage code
-- **Note**: Currently accessed via Scan operation (inefficient for large tables)
+**Índice Secundario Global** (recomendado para linkage_code):
+- **Clave de Partición**: `linkage_code` (String)
+- **Propósito**: Encontrar la organización eficientemente por código de vinculación
+- **Nota**: Actualmente se accede mediante operación Scan (ineficiente para tablas grandes)
 
-**Access Patterns**:
-- Find organization by linkage_code: **Scan** with FilterExpression (current implementation)
-- Recommended: Query GSI on linkage_code for better performance
+**Patrones de Acceso**:
+- Encontrar organización por linkage_code: **Scan** con FilterExpression (implementación actual)
+- Recomendado: Consulta GSI en linkage_code para mejor rendimiento
 
-**Performance Consideration**:
+**Consideración de Rendimiento**:
 ```python
-# Current implementation (full table scan)
+# Implementación actual (escaneo completo de tabla)
 response = dynamodb.scan(
     TableName='Organization-abc123-develop',
     FilterExpression='linkage_code = :code',
     ExpressionAttributeValues={':code': 'HF3-2024-001'}
 )
 
-# Recommended optimization: Use GSI query instead
+# Optimización recomendada: Usar consulta GSI en su lugar
 response = dynamodb.query(
     TableName='Organization-abc123-develop',
     IndexName='linkage_code-index',
@@ -282,32 +282,32 @@ response = dynamodb.query(
 
 ---
 
-### 5. Location Table
+### 5. Tabla Location
 
-**Purpose**: Stores geographic coordinates for UVA devices
+**Propósito**: Almacena coordenadas geográficas de los dispositivos UVA
 
-**Naming Convention**: `Location-{AppId}-{env}`
-**Example**: `Location-abc123-develop`
+**Convención de Nomenclatura**: `Location-{AppId}-{env}`
+**Ejemplo**: `Location-abc123-develop`
 
-#### Schema
+#### Esquema
 
-**Primary Key**:
-- **Partition Key**: `id` (String) - Location identifier (format: `A{uvaID}`)
+**Clave Primaria**:
+- **Clave de Partición**: `id` (String) - Identificador de ubicación (formato: `A{uvaID}`)
 
-**Attributes**:
+**Atributos**:
 ```json
 {
-  "id": "String",           // Location ID = "A" + uvaID (partition key)
-  "latitude": "Number",     // GPS latitude
-  "longitude": "Number",    // GPS longitude
-  "altitude": "Number",     // Optional: Altitude in meters
-  "accuracy": "Number",     // Optional: GPS accuracy in meters
-  "createdAt": "String",    // ISO 8601 creation timestamp
-  "updatedAt": "String"     // ISO 8601 update timestamp
+  "id": "String",           // ID de ubicación = "A" + uvaID (clave de partición)
+  "latitude": "Number",     // Latitud GPS
+  "longitude": "Number",    // Longitud GPS
+  "altitude": "Number",     // Opcional: Altitud en metros
+  "accuracy": "Number",     // Opcional: Precisión GPS en metros
+  "createdAt": "String",    // Timestamp de creación ISO 8601
+  "updatedAt": "String"     // Timestamp de actualización ISO 8601
 }
 ```
 
-**Sample Record**:
+**Registro de Ejemplo**:
 ```json
 {
   "id": "Auva123",
@@ -320,35 +320,35 @@ response = dynamodb.query(
 }
 ```
 
-#### ID Convention
+#### Convención de ID
 
-**Format**: `A{uvaID}`
-**Examples**:
+**Formato**: `A{uvaID}`
+**Ejemplos**:
 - UVA ID: `uva123` → Location ID: `Auva123`
 - UVA ID: `device456` → Location ID: `Adevice456`
 
-**Purpose**: Creates one-to-one relationship with UVA table
+**Propósito**: Crea una relación uno-a-uno con la tabla UVA
 
-#### Access Patterns
+#### Patrones de Acceso
 
-- Check if location exists: GetItem by `id`
-- Get device location: GetItem by `A{uvaID}`
-- Update location: PutItem or UpdateItem
+- Verificar si existe la ubicación: GetItem por `id`
+- Obtener la ubicación del dispositivo: GetItem por `A{uvaID}`
+- Actualizar ubicación: PutItem o UpdateItem
 
-#### Relationships
+#### Relaciones
 
-**One-to-One with UVA**:
+**Uno-a-Uno con UVA**:
 - Location.id = `A{UVA.id}`
-- Managed by UvaToCloudFunction on UVA MODIFY events
+- Administrada por UvaToCloudFunction en eventos MODIFY de UVA
 
 ---
 
-## Table Relationships
+## Relaciones Entre Tablas
 
 ```
 Organization
     │
-    │ (linkage_code match)
+    │ (coincidencia de linkage_code)
     ▼
   RACIMO ──────┐
     │          │
@@ -363,43 +363,43 @@ Location    Measurement
 (A{uvaID})  (uvaID, ts)
 ```
 
-**Relationship Details**:
-1. **Organization ↔ RACIMO**: Linked via `linkage_code` field
-2. **RACIMO ↔ UVA**: One-to-many via `racimoID` foreign key
-3. **UVA ↔ Location**: One-to-one via `A{uvaID}` convention
-4. **UVA ↔ Measurement**: One-to-many via `uvaID` partition key
+**Detalles de las Relaciones**:
+1. **Organization ↔ RACIMO**: Vinculadas mediante el campo `linkage_code`
+2. **RACIMO ↔ UVA**: Uno-a-muchos mediante la clave foránea `racimoID`
+3. **UVA ↔ Location**: Uno-a-uno mediante la convención `A{uvaID}`
+4. **UVA ↔ Measurement**: Uno-a-muchos mediante la clave de partición `uvaID`
 
 ---
 
-## Data Operations
+## Operaciones de Datos
 
-### Read Operations
+### Operaciones de Lectura
 
-**GetItem** (efficient - O(1) complexity):
+**GetItem** (eficiente - complejidad O(1)):
 ```python
-# Get specific UVA device
+# Obtener dispositivo UVA específico
 response = dynamodb.get_item(
     TableName='UVA-abc123-develop',
     Key={'id': 'uva123'}
 )
 ```
 
-**Query** (efficient - uses indexes):
+**Query** (eficiente - usa índices):
 ```python
-# Get latest measurements for device
+# Obtener las últimas mediciones de un dispositivo
 response = dynamodb.query(
     TableName='Measurement-abc123-develop',
     IndexName='uvaID-ts-index',
     KeyConditionExpression='uvaID = :id',
     ExpressionAttributeValues={':id': 'uva123'},
-    ScanIndexForward=False,  # Descending order
+    ScanIndexForward=False,  # Orden descendente
     Limit=1
 )
 ```
 
-**Scan** (inefficient - full table scan):
+**Scan** (ineficiente - escaneo completo de tabla):
 ```python
-# Find organization by linkage code (current implementation)
+# Encontrar organización por linkage code (implementación actual)
 response = dynamodb.scan(
     TableName='Organization-abc123-develop',
     FilterExpression='linkage_code = :code',
@@ -407,11 +407,11 @@ response = dynamodb.scan(
 )
 ```
 
-### Write Operations
+### Operaciones de Escritura
 
-**PutItem** (create or replace):
+**PutItem** (crear o reemplazar):
 ```python
-# Create new UVA device
+# Crear nuevo dispositivo UVA
 dynamodb.put_item(
     TableName='UVA-abc123-develop',
     Item={
@@ -424,9 +424,9 @@ dynamodb.put_item(
 )
 ```
 
-**UpdateItem** (modify specific attributes):
+**UpdateItem** (modificar atributos específicos):
 ```python
-# Update device location
+# Actualizar ubicación del dispositivo
 dynamodb.update_item(
     TableName='UVA-abc123-develop',
     Key={'id': 'uva123'},
@@ -443,22 +443,22 @@ dynamodb.update_item(
 
 ## DynamoDB Streams
 
-### Stream Configuration
+### Configuración de Stream
 
-**Tables with Streams Enabled**:
-1. **Measurement**: NEW_IMAGE view
-2. **UVA**: NEW_AND_OLD_IMAGES view
+**Tablas con Streams Habilitados**:
+1. **Measurement**: Vista NEW_IMAGE
+2. **UVA**: Vista NEW_AND_OLD_IMAGES
 
-**Stream Settings**:
-- **Batch Size**: 10 records per Lambda invocation
-- **Batching Window**: 10 seconds maximum wait
-- **Starting Position**: LATEST (only new records)
-- **Retry**: 3 attempts on Lambda failure
-- **On Failure**: DLQ (Dead Letter Queue) if configured
+**Configuración del Stream**:
+- **Tamaño de Lote**: 10 registros por invocación de Lambda
+- **Ventana de Agrupamiento**: Espera máxima de 10 segundos
+- **Posición Inicial**: LATEST (solo nuevos registros)
+- **Reintentos**: 3 intentos en caso de fallo de Lambda
+- **En caso de fallo**: DLQ (Dead Letter Queue) si está configurada
 
-### Stream Record Format
+### Formato de Registro del Stream
 
-**INSERT Event**:
+**Evento INSERT**:
 ```json
 {
   "eventID": "abc123",
@@ -483,7 +483,7 @@ dynamodb.update_item(
 }
 ```
 
-**MODIFY Event** (for UVA table):
+**Evento MODIFY** (para la tabla UVA):
 ```json
 {
   "eventName": "MODIFY",
@@ -505,79 +505,79 @@ dynamodb.update_item(
 
 ---
 
-## Performance Considerations
+## Consideraciones de Rendimiento
 
-### Read Capacity
+### Capacidad de Lectura
 
-**Query Operations**:
-- Measurement queries: ~1-5 RCU per query (depending on data size)
-- UVA GetItem: 1 RCU per device
-- RACIMO GetItem: 1 RCU per cluster
+**Operaciones Query**:
+- Consultas de Measurement: ~1-5 RCU por consulta (dependiendo del tamaño de datos)
+- GetItem de UVA: 1 RCU por dispositivo
+- GetItem de RACIMO: 1 RCU por clúster
 
-**Scan Operations**:
-- Organization scan: Scales with table size (inefficient)
-- Recommendation: Add GSI on `linkage_code` for O(1) queries
+**Operaciones Scan**:
+- Scan de Organization: Escala con el tamaño de la tabla (ineficiente)
+- Recomendación: Agregar GSI en `linkage_code` para consultas O(1)
 
-### Write Capacity
+### Capacidad de Escritura
 
-**Stream-triggered Writes**:
-- Measurement INSERT: ~100-1000 WCU during peak device activity
-- UVA MODIFY: ~10-50 WCU during location updates
+**Escrituras Disparadas por Stream**:
+- INSERT de Measurement: ~100-1000 WCU durante actividad pico de dispositivos
+- MODIFY de UVA: ~10-50 WCU durante actualizaciones de ubicación
 
-**Recommendation**: Use on-demand billing for unpredictable workloads
+**Recomendación**: Usar facturación bajo demanda para cargas de trabajo impredecibles
 
-### Latency
+### Latencia
 
-**GetItem**: < 10ms (single-digit milliseconds)
-**Query**: 10-50ms (depending on result set size)
-**Scan**: 100ms - several seconds (depends on table size)
-**Stream Latency**: < 1 second (stream event to Lambda invocation)
+**GetItem**: < 10ms (milisegundos de un solo dígito)
+**Query**: 10-50ms (dependiendo del tamaño del resultado)
+**Scan**: 100ms - varios segundos (depende del tamaño de la tabla)
+**Latencia del Stream**: < 1 segundo (desde el evento del stream hasta la invocación de Lambda)
 
 ---
 
-## Data Retention
+## Retención de Datos
 
-**Tables**: No TTL (Time To Live) configured
-**Measurement Data**: Grows indefinitely (consider implementing TTL)
+**Tablas**: Sin TTL (Time To Live) configurado
+**Datos de Measurement**: Crecen indefinidamente (considerar implementar TTL)
 
-**Recommendation for Measurement Table**:
+**Recomendación para la Tabla Measurement**:
 ```python
-# Enable TTL to automatically delete old measurements
-# Example: Delete measurements older than 90 days
+# Habilitar TTL para eliminar automáticamente mediciones antiguas
+# Ejemplo: Eliminar mediciones con más de 90 días
 dynamodb.update_time_to_live(
     TableName='Measurement-abc123-develop',
     TimeToLiveSpecification={
         'Enabled': True,
-        'AttributeName': 'expirationTime'  # Unix timestamp
+        'AttributeName': 'expirationTime'  # Timestamp Unix
     }
 )
 ```
 
-**Calculate expiration time**:
+**Calcular el tiempo de expiración**:
 ```python
 import time
 
-# Set expiration to 90 days from now
+# Establecer expiración a 90 días a partir de ahora
 expiration_time = int(time.time()) + (90 * 24 * 60 * 60)
 
-# Add to measurement record
+# Agregar al registro de medición
 item['expirationTime'] = expiration_time
 ```
 
 ---
 
-## Security
+## Seguridad
 
-### Encryption
+### Cifrado
 
-**At Rest**: DynamoDB default encryption (AWS-managed keys)
-**In Transit**: TLS 1.2+ for all API calls
+**En Reposo**: Cifrado por defecto de DynamoDB (claves administradas por AWS)
+**En Tránsito**: TLS 1.2+ para todas las llamadas API
 
-### Access Control
+### Control de Acceso
 
-**IAM Policies**: Lambda execution roles have fine-grained permissions
+**Políticas IAM**: Los roles de ejecución de Lambda tienen permisos detallados
 
-**Example Policy**:
+**Política de Ejemplo**:
 ```json
 {
   "Version": "2012-10-17",
@@ -605,36 +605,36 @@ item['expirationTime'] = expiration_time
 }
 ```
 
-### Backup
+### Respaldo
 
-**Point-in-Time Recovery (PITR)**: Recommended for production
-**On-Demand Backups**: Manual backups for major releases
+**Recuperación a Punto en el Tiempo (PITR)**: Recomendada para producción
+**Respaldos Bajo Demanda**: Respaldos manuales para lanzamientos importantes
 
 ---
 
-## Monitoring
+## Monitoreo
 
-### CloudWatch Metrics
+### Métricas de CloudWatch
 
-**Key Metrics**:
-- `ConsumedReadCapacityUnits`: Monitor for throttling
-- `ConsumedWriteCapacityUnits`: Monitor for throttling
-- `UserErrors`: 400 errors (validation issues)
-- `SystemErrors`: 500 errors (service issues)
-- `SuccessfulRequestLatency`: Query performance
+**Métricas Clave**:
+- `ConsumedReadCapacityUnits`: Monitorear para detectar throttling
+- `ConsumedWriteCapacityUnits`: Monitorear para detectar throttling
+- `UserErrors`: Errores 400 (problemas de validación)
+- `SystemErrors`: Errores 500 (problemas del servicio)
+- `SuccessfulRequestLatency`: Rendimiento de las consultas
 
-### Stream Monitoring
+### Monitoreo del Stream
 
-**Important Metrics**:
-- `GetRecords.IteratorAgeMilliseconds`: Stream processing lag
-  - Alert if > 600000 (10 minutes)
-- `GetRecords.Success`: Stream read success rate
+**Métricas Importantes**:
+- `GetRecords.IteratorAgeMilliseconds`: Retraso en el procesamiento del stream
+  - Alertar si > 600000 (10 minutos)
+- `GetRecords.Success`: Tasa de éxito de lectura del stream
 
-### Alarms
+### Alarmas
 
-**Recommended CloudWatch Alarms**:
+**Alarmas de CloudWatch Recomendadas**:
 ```bash
-# High iterator age (stream lag)
+# Alta antigüedad del iterador (retraso del stream)
 aws cloudwatch put-metric-alarm \
   --alarm-name "UVA-Stream-Lag" \
   --metric-name GetRecords.IteratorAgeMilliseconds \
@@ -644,7 +644,7 @@ aws cloudwatch put-metric-alarm \
   --threshold 600000 \
   --comparison-operator GreaterThanThreshold
 
-# High error rate
+# Alta tasa de errores
 aws cloudwatch put-metric-alarm \
   --alarm-name "DynamoDB-Errors" \
   --metric-name UserErrors \
@@ -657,29 +657,29 @@ aws cloudwatch put-metric-alarm \
 
 ---
 
-## Optimization Recommendations
+## Recomendaciones de Optimización
 
-1. **Add GSI to Organization Table**:
-   - Index: `linkage_code` (partition key)
-   - Eliminates expensive Scan operations
-   - Reduces costs and improves latency
+1. **Agregar GSI a la Tabla Organization**:
+   - Índice: `linkage_code` (clave de partición)
+   - Elimina las costosas operaciones Scan
+   - Reduce costos y mejora la latencia
 
-2. **Implement TTL for Measurement Table**:
-   - Automatically delete old measurements
-   - Reduces storage costs
-   - Maintains performance at scale
+2. **Implementar TTL para la Tabla Measurement**:
+   - Elimina automáticamente mediciones antiguas
+   - Reduce costos de almacenamiento
+   - Mantiene el rendimiento a escala
 
-3. **Use Query instead of Scan**:
-   - Replace Organization Scan with Query on GSI
-   - 10-100x performance improvement
-   - Lower cost per operation
+3. **Usar Query en lugar de Scan**:
+   - Reemplazar el Scan de Organization con Query en GSI
+   - Mejora de rendimiento de 10-100x
+   - Menor costo por operación
 
-4. **Consider DynamoDB Streams Filtering**:
-   - Filter MODIFY events to only location changes
-   - Reduces unnecessary Lambda invocations
-   - Lower compute costs
+4. **Considerar el Filtrado de DynamoDB Streams**:
+   - Filtrar eventos MODIFY para solo cambios de ubicación
+   - Reduce invocaciones innecesarias de Lambda
+   - Menor costo de cómputo
 
-5. **Batch Operations**:
-   - Use BatchGetItem for bulk reads
-   - Use BatchWriteItem for bulk writes
-   - Reduce API call overhead
+5. **Operaciones en Lote**:
+   - Usar BatchGetItem para lecturas en volumen
+   - Usar BatchWriteItem para escrituras en volumen
+   - Reducir la sobrecarga de llamadas API

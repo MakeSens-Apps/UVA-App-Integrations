@@ -1,30 +1,30 @@
-# Lambda Functions
+# Funciones Lambda
 
-This document provides detailed specifications for each Lambda function in the UVA-App-Integrations service.
+Este documento provee especificaciones detalladas de cada función Lambda en el servicio UVA-App-Integrations.
 
 ---
 
-## Function 1: DynamoDBEventProcessorFunction
+## Función 1: DynamoDBEventProcessorFunction
 
-### Overview
-**Name**: DynamoDBEventProcessorFunction
-**Purpose**: Process measurement data from DynamoDB Streams and publish to SNS for real-time distribution
-**Location**: `SAM-UVA-App-Integrations/lambdas/deviceDataAccess/dynamodb_to_sns.py`
+### Descripción General
+**Nombre**: DynamoDBEventProcessorFunction
+**Propósito**: Procesar datos de mediciones desde DynamoDB Streams y publicar en SNS para distribución en tiempo real
+**Ubicación**: `SAM-UVA-App-Integrations/lambdas/deviceDataAccess/dynamodb_to_sns.py`
 
-### Trigger
+### Disparador
 
-**Type**: DynamoDB Stream
-**Source**: Measurement table stream
-**Configuration**:
+**Tipo**: DynamoDB Stream
+**Fuente**: Stream de la tabla Measurement
+**Configuración**:
 ```yaml
 Stream ARN: arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-{AppId}-{env}/stream/*
 Batch Size: 10
-Maximum Batching Window: 10 seconds
+Maximum Batching Window: 10 segundos
 Starting Position: LATEST
-Event Types: INSERT, MODIFY, REMOVE (filters INSERT only in code)
+Event Types: INSERT, MODIFY, REMOVE (filtra solo INSERT en el código)
 ```
 
-**Sample Event**:
+**Evento de Ejemplo**:
 ```json
 {
   "Records": [
@@ -46,70 +46,70 @@ Event Types: INSERT, MODIFY, REMOVE (filters INSERT only in code)
 }
 ```
 
-### Expected Inputs
+### Entradas Esperadas
 
-**DynamoDB Stream Record Fields**:
-- `eventName`: Event type (INSERT, MODIFY, REMOVE)
-- `dynamodb.NewImage`: Record data in DynamoDB format
-  - `id` (String): UVA device identifier
-  - `type` (String): Measurement type (temperature, pressure, etc.)
-  - `ts` (String): ISO 8601 timestamp
-  - `data` (Map): Measurement data object
-  - `logs` (List): Optional log entries
+**Campos del Registro del DynamoDB Stream**:
+- `eventName`: Tipo de evento (INSERT, MODIFY, REMOVE)
+- `dynamodb.NewImage`: Datos del registro en formato DynamoDB
+  - `id` (String): Identificador del dispositivo UVA
+  - `type` (String): Tipo de medición (temperature, pressure, etc.)
+  - `ts` (String): Timestamp ISO 8601
+  - `data` (Map): Objeto con los datos de la medición
+  - `logs` (List): Entradas de log opcionales
 
-**Data Type Formats** (DynamoDB native types):
+**Formatos de Tipos de Datos** (tipos nativos de DynamoDB):
 - `S`: String
-- `N`: Number (stored as string, needs parsing)
-- `M`: Map (nested object)
+- `N`: Número (almacenado como string, requiere parseo)
+- `M`: Map (objeto anidado)
 - `L`: List (array)
 
-### Processing Logic
+### Lógica de Procesamiento
 
-**Function**: `lambda_handler(event, context)`
+**Función**: `lambda_handler(event, context)`
 ```python
 def lambda_handler(event, context):
     """
-    Main entry point for Lambda function
+    Punto de entrada principal de la función Lambda
 
     Args:
-        event: DynamoDB Stream event with Records array
-        context: Lambda execution context
+        event: Evento del DynamoDB Stream con array de Records
+        context: Contexto de ejecución de Lambda
 
     Returns:
-        dict: Status code and processing summary
+        dict: Código de estado y resumen del procesamiento
     """
 ```
 
-**Key Functions**:
+**Funciones Principales**:
 
 1. **`process_data(records)`**
-   - Filters records for INSERT events only
-   - Extracts NewImage data from each record
-   - Calls `remove_data_types()` to transform format
-   - Returns list of processed records
+   - Filtra los registros solo para eventos INSERT
+   - Extrae datos NewImage de cada registro
+   - Llama a `remove_data_types()` para transformar el formato
+   - Devuelve la lista de registros procesados
 
 2. **`remove_data_types(data)`**
-   - Recursively converts DynamoDB format to Python native types
-   - Handles String (S), Number (N), Map (M), List (L), Boolean (BOOL)
-   - Preserves data structure while removing type annotations
+   - Convierte recursivamente el formato DynamoDB a tipos Python nativos
+   - Maneja String (S), Number (N), Map (M), List (L), Boolean (BOOL)
+   - Preserva la estructura de datos eliminando las anotaciones de tipo
 
-   Example transformation:
+   Transformación de ejemplo:
    ```python
-   # Input
+   # Entrada
    {"value": {"N": "36.5"}, "unit": {"S": "celsius"}}
 
-   # Output
+   # Salida
    {"value": 36.5, "unit": "celsius"}
    ```
 
 3. **`send_message_to_topic_sns(data)`**
-   - Converts ISO timestamp to Unix milliseconds
-   - Publishes message to SNS topic
-   - Adds message attributes: `typeDevice=UVA`, `typeData=RAW`
+   - Convierte el timestamp ISO a milisegundos Unix
+   - Publica el mensaje en el topic SNS
+   - Agrega atributos del mensaje: `typeDevice=UVA`, `typeData=RAW`
 
-### Generated Outputs
+### Salidas Generadas
 
-**SNS Message Structure**:
+**Estructura del Mensaje SNS**:
 ```json
 {
   "id": "uva123",
@@ -123,7 +123,7 @@ def lambda_handler(event, context):
 }
 ```
 
-**SNS Message Attributes**:
+**Atributos del Mensaje SNS**:
 ```python
 {
   "typeDevice": {"DataType": "String", "StringValue": "UVA"},
@@ -131,28 +131,28 @@ def lambda_handler(event, context):
 }
 ```
 
-**CloudWatch Logs**:
-- Processed record count
-- SNS publish confirmation (MessageId)
-- Error details if processing fails
+**Logs de CloudWatch**:
+- Conteo de registros procesados
+- Confirmación de publicación en SNS (MessageId)
+- Detalles del error si el procesamiento falla
 
-### Required Environment Variables
+### Variables de Entorno Requeridas
 
 ```bash
 TOPIC_SNS_ARN=arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-{env}
 ```
 
-**Configured via**: SAM template `Ref: TopicSNSDataArn` parameter
+**Configurado vía**: Parámetro `Ref: TopicSNSDataArn` en la plantilla SAM
 
-### AWS Services Consumed
+### Servicios AWS Consumidos
 
-| Service | Operation | Purpose |
+| Servicio | Operación | Propósito |
 |---------|-----------|---------|
-| DynamoDB Streams | GetRecords | Read stream events (automatic) |
-| Amazon SNS | Publish | Send processed data to topic |
-| CloudWatch Logs | PutLogEvents | Store execution logs |
+| DynamoDB Streams | GetRecords | Leer eventos del stream (automático) |
+| Amazon SNS | Publish | Enviar datos procesados al topic |
+| CloudWatch Logs | PutLogEvents | Almacenar logs de ejecución |
 
-### IAM Permissions Required
+### Permisos IAM Requeridos
 
 ```json
 {
@@ -182,56 +182,56 @@ TOPIC_SNS_ARN=arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-{env}
 }
 ```
 
-### Dependencies
+### Dependencias
 
-**Python Packages** (from `requirements.txt`):
+**Paquetes Python** (desde `requirements.txt`):
 ```
 boto3==1.34.29
 ```
 
-**Standard Library**:
-- `json`: JSON parsing
-- `datetime`: Timestamp conversion
-- `os`: Environment variable access
+**Librería Estándar**:
+- `json`: Parseo de JSON
+- `datetime`: Conversión de timestamps
+- `os`: Acceso a variables de entorno
 
-### Error Handling
+### Manejo de Errores
 
-- **Invalid record format**: Logs error, skips record, continues processing
-- **SNS publish failure**: Raises exception, Lambda retries entire batch
-- **Timestamp conversion error**: Logs warning, uses current timestamp
+- **Formato de registro inválido**: Registra el error, omite el registro, continúa procesando
+- **Fallo al publicar en SNS**: Lanza excepción, Lambda reintenta el lote completo
+- **Error de conversión de timestamp**: Registra advertencia, usa el timestamp actual
 
-### Performance Characteristics
+### Características de Rendimiento
 
-- **Cold Start**: ~2-3 seconds
-- **Warm Execution**: ~200-500ms for 10 records
-- **Memory Usage**: ~100-150 MB
-- **Timeout**: 600 seconds (configured)
+- **Arranque en Frío**: ~2-3 segundos
+- **Ejecución en Caliente**: ~200-500ms para 10 registros
+- **Uso de Memoria**: ~100-150 MB
+- **Timeout**: 600 segundos (configurado)
 
 ---
 
-## Function 2: UvaToCloudFunction
+## Función 2: UvaToCloudFunction
 
-### Overview
-**Name**: UvaToCloudFunction
-**Purpose**: Synchronize UVA device data with MakeSensCloud by creating devices and managing locations
-**Location**: `SAM-UVA-App-Integrations/lambdas/cloud/uva_to_cloud.py`
+### Descripción General
+**Nombre**: UvaToCloudFunction
+**Propósito**: Sincronizar datos de dispositivos UVA con MakeSensCloud creando dispositivos y gestionando ubicaciones
+**Ubicación**: `SAM-UVA-App-Integrations/lambdas/cloud/uva_to_cloud.py`
 
-### Trigger
+### Disparador
 
-**Type**: DynamoDB Stream
-**Source**: UVA table stream
-**Configuration**:
+**Tipo**: DynamoDB Stream
+**Fuente**: Stream de la tabla UVA
+**Configuración**:
 ```yaml
 Stream ARN: arn:aws:dynamodb:us-east-1:913045965320:table/UVA-{AppId}-{env}/stream/*
 Batch Size: 10
-Maximum Batching Window: 10 seconds
+Maximum Batching Window: 10 segundos
 Starting Position: LATEST
 Event Types: INSERT, MODIFY
 ```
 
-### Expected Inputs
+### Entradas Esperadas
 
-**INSERT Event** (New UVA Created):
+**Evento INSERT** (Nuevo UVA Creado):
 ```json
 {
   "eventName": "INSERT",
@@ -245,7 +245,7 @@ Event Types: INSERT, MODIFY
 }
 ```
 
-**MODIFY Event** (Location Updated):
+**Evento MODIFY** (Ubicación Actualizada):
 ```json
 {
   "eventName": "MODIFY",
@@ -259,42 +259,42 @@ Event Types: INSERT, MODIFY
 }
 ```
 
-### Processing Logic
+### Lógica de Procesamiento
 
-**Function**: `lambda_handler(event, context)`
+**Función**: `lambda_handler(event, context)`
 
-**Processing Flow**:
-1. Iterate through stream records
-2. Check event type (INSERT or MODIFY)
-3. Route to appropriate handler
+**Flujo de Procesamiento**:
+1. Iterar sobre los registros del stream
+2. Verificar el tipo de evento (INSERT o MODIFY)
+3. Enrutar al manejador correspondiente
 
-**INSERT Handler**: `process_insert_event(record)`
+**Manejador INSERT**: `process_insert_event(record)`
 ```python
 def process_insert_event(record):
     """
-    Creates device in MakeSensCloud
+    Crea el dispositivo en MakeSensCloud
 
-    Steps:
-    1. Extract UVA ID and RACIMO ID from record
-    2. Query RACIMO table for LinkageCode
-    3. Scan Organization table for matching linkage_code
-    4. Extract organizationID
-    5. Call createDevice GraphQL mutation
+    Pasos:
+    1. Extraer UVA ID y RACIMO ID del registro
+    2. Consultar la tabla RACIMO por LinkageCode
+    3. Escanear la tabla Organization para encontrar la linkage_code correspondiente
+    4. Extraer organizationID
+    5. Llamar a la mutación GraphQL createDevice
 
-    Returns: None (logs success/failure)
+    Devuelve: None (registra éxito/fallo)
     """
 ```
 
-**Database Queries**:
+**Consultas a la Base de Datos**:
 ```python
-# Get RACIMO LinkageCode
+# Obtener LinkageCode del RACIMO
 racimo = dynamodb.get_item(
     TableName=RACIMO_TABLE,
     Key={'id': racimo_id}
 )
 linkage_code = racimo['Item']['LinkageCode']
 
-# Find Organization
+# Encontrar la Organización
 organization = dynamodb.scan(
     TableName=ORGANIZATION_TABLE,
     FilterExpression='linkage_code = :code',
@@ -303,7 +303,7 @@ organization = dynamodb.scan(
 org_id = organization['Items'][0]['id']
 ```
 
-**GraphQL Mutation**:
+**Mutación GraphQL**:
 ```graphql
 mutation CreateDevice {
   createDevice(
@@ -318,30 +318,30 @@ mutation CreateDevice {
 }
 ```
 
-**MODIFY Handler**: `process_modify_event(record)`
+**Manejador MODIFY**: `process_modify_event(record)`
 ```python
 def process_modify_event(record):
     """
-    Updates or creates device location
+    Actualiza o crea la ubicación del dispositivo
 
-    Steps:
-    1. Extract latitude and longitude from record
-    2. Validate both coordinates present
-    3. Query Location table for existing record (id = A{uvaID})
-    4. If exists: call updateLocation
-    5. If not exists: call createLocation
+    Pasos:
+    1. Extraer latitud y longitud del registro
+    2. Validar que ambas coordenadas estén presentes
+    3. Consultar la tabla Location por el registro existente (id = A{uvaID})
+    4. Si existe: llamar a updateLocation
+    5. Si no existe: llamar a createLocation
 
-    Returns: None (logs success/failure)
+    Devuelve: None (registra éxito/fallo)
     """
 ```
 
-**Location Validation**:
+**Validación de Ubicación**:
 ```python
 if 'latitude' not in new_image or 'longitude' not in new_image:
-    return  # Skip if incomplete
+    return  # Omitir si está incompleto
 ```
 
-**Location Check**:
+**Verificación de Ubicación**:
 ```python
 location_id = f"A{uva_id}"
 existing = dynamodb.get_item(
@@ -355,9 +355,9 @@ else:
     create_location(location_id, lat, lng)
 ```
 
-### Generated Outputs
+### Salidas Generadas
 
-**Device Creation Response**:
+**Respuesta de Creación de Dispositivo**:
 ```json
 {
   "data": {
@@ -368,7 +368,7 @@ else:
 }
 ```
 
-**Location Creation Response**:
+**Respuesta de Creación de Ubicación**:
 ```json
 {
   "data": {
@@ -381,41 +381,41 @@ else:
 }
 ```
 
-**CloudWatch Logs**:
-- Event type and UVA ID
-- RACIMO and Organization lookup results
-- GraphQL request and response
-- Success/error messages
+**Logs de CloudWatch**:
+- Tipo de evento y UVA ID
+- Resultados de la búsqueda de RACIMO y Organization
+- Solicitud y respuesta GraphQL
+- Mensajes de éxito/error
 
-### Required Environment Variables
+### Variables de Entorno Requeridas
 
 ```bash
-# AppSync Endpoint
+# Endpoint AppSync
 APPSYNC_GRAPHQL_URL=https://{api-id}.appsync-api.us-east-1.amazonaws.com/graphql
 
-# API Authentication
+# Autenticación API
 APPSYNC_API_KEY=da2-xxxxxxxxxxxxxxxxxxxxx
 
-# DynamoDB Tables
+# Tablas DynamoDB
 RACIMO_TABLE_NAME=RACIMO-{AppId}-{env}
 ORGANIZATION_TABLE_NAME=Organization-{AppId}-{env}
 LOCATION_TABLE_NAME=Location-{AppId}-{env}
 ```
 
-**Configured via**: SAM template parameters and Refs
+**Configurado vía**: Parámetros de la plantilla SAM y Refs
 
-### AWS Services Consumed
+### Servicios AWS Consumidos
 
-| Service | Operation | Purpose |
+| Servicio | Operación | Propósito |
 |---------|-----------|---------|
-| DynamoDB Streams | GetRecords | Read UVA table changes |
-| DynamoDB | GetItem | Retrieve RACIMO details |
-| DynamoDB | Scan | Find Organization by linkage code |
-| DynamoDB | GetItem | Check if Location exists |
-| AWS AppSync | GraphQL Mutation | Create/update devices and locations |
-| CloudWatch Logs | PutLogEvents | Store execution logs |
+| DynamoDB Streams | GetRecords | Leer cambios de la tabla UVA |
+| DynamoDB | GetItem | Obtener detalles del RACIMO |
+| DynamoDB | Scan | Encontrar Organization por linkage code |
+| DynamoDB | GetItem | Verificar si existe Location |
+| AWS AppSync | Mutación GraphQL | Crear/actualizar dispositivos y ubicaciones |
+| CloudWatch Logs | PutLogEvents | Almacenar logs de ejecución |
 
-### IAM Permissions Required
+### Permisos IAM Requeridos
 
 ```json
 {
@@ -442,63 +442,63 @@ LOCATION_TABLE_NAME=Location-{AppId}-{env}
 }
 ```
 
-### Dependencies
+### Dependencias
 
-**Python Packages**:
+**Paquetes Python**:
 ```
 boto3==1.34.29
 requests==2.31.0
 ```
 
-### Error Handling
+### Manejo de Errores
 
-- **Missing RACIMO**: Logs error, skips device creation
-- **Organization not found**: Logs error, skips device creation
-- **Invalid location data**: Skips location sync, logs warning
-- **GraphQL API error**: Logs full error response, Lambda fails (triggers retry)
+- **RACIMO no encontrado**: Registra el error, omite la creación del dispositivo
+- **Organization no encontrada**: Registra el error, omite la creación del dispositivo
+- **Datos de ubicación inválidos**: Omite la sincronización de ubicación, registra advertencia
+- **Error de la API GraphQL**: Registra la respuesta completa del error, Lambda falla (dispara reintento)
 
-### Performance Characteristics
+### Características de Rendimiento
 
-- **Cold Start**: ~3-4 seconds
-- **Warm Execution**: 1-2 seconds per device (due to DynamoDB queries + GraphQL calls)
-- **Memory Usage**: ~150-200 MB
-- **Network Latency**: ~500ms for AppSync calls
+- **Arranque en Frío**: ~3-4 segundos
+- **Ejecución en Caliente**: 1-2 segundos por dispositivo (debido a las consultas DynamoDB + llamadas GraphQL)
+- **Uso de Memoria**: ~150-200 MB
+- **Latencia de Red**: ~500ms para llamadas a AppSync
 
 ---
 
-## Function 3: UVALastConnection
+## Función 3: UVALastConnection
 
-### Overview
-**Name**: UVALastConnection
-**Purpose**: REST API endpoint to check UVA device connection status
-**Location**: `SAM-UVA-App-Integrations/lambdas/uvaConnection/last_connection.py`
+### Descripción General
+**Nombre**: UVALastConnection
+**Propósito**: Endpoint REST API para verificar el estado de conexión de los dispositivos UVA
+**Ubicación**: `SAM-UVA-App-Integrations/lambdas/uvaConnection/last_connection.py`
 
-### Trigger
+### Disparador
 
-**Type**: API Gateway REST API
-**HTTP Method**: GET
-**Path**: `/{id_uva}/connection`
-**Authorization**: AWS_IAM
+**Tipo**: REST API de API Gateway
+**Método HTTP**: GET
+**Ruta**: `/{id_uva}/connection`
+**Autorización**: AWS_IAM
 
-**Sample Requests**:
+**Solicitudes de Ejemplo**:
 ```bash
-# Single device
+# Dispositivo único
 GET /uva123/connection
 
-# Multiple devices
+# Múltiples dispositivos
 GET /all/connection?ids=uva1,uva2,uva3
 ```
 
-### Expected Inputs
+### Entradas Esperadas
 
-**Path Parameters**:
-- `id_uva` (String): UVA device ID or literal "all" for bulk query
+**Parámetros de Ruta**:
+- `id_uva` (String): ID del dispositivo UVA o el literal "all" para consulta masiva
 
-**Query String Parameters** (when id_uva = "all"):
-- `ids` (String): Comma-separated list of UVA IDs
-  - Example: `?ids=uva123,uva456,uva789`
+**Parámetros de Cadena de Consulta** (cuando id_uva = "all"):
+- `ids` (String): Lista de IDs de UVA separados por comas
+  - Ejemplo: `?ids=uva123,uva456,uva789`
 
-**Event Structure**:
+**Estructura del Evento**:
 ```json
 {
   "pathParameters": {
@@ -510,54 +510,54 @@ GET /all/connection?ids=uva1,uva2,uva3
 }
 ```
 
-### Processing Logic
+### Lógica de Procesamiento
 
-**Function**: `lambda_handler(event, context)`
+**Función**: `lambda_handler(event, context)`
 
-**Routing Logic**:
+**Lógica de Enrutamiento**:
 ```python
 if id_uva == "all":
-    # Bulk query mode
+    # Modo de consulta masiva
     ids = query_params.get('ids', '').split(',')
     return get_connection_status(ids)
 else:
-    # Single query mode
+    # Modo de consulta individual
     return get_connection_status([id_uva])
 ```
 
-**Connection Check**: `get_connection_status(uva_ids)`
+**Verificación de Conexión**: `get_connection_status(uva_ids)`
 ```python
 def get_connection_status(uva_ids):
     """
-    For each UVA ID:
-    1. Call get_last_connection(uva_id)
-    2. Check if timestamp within last 24 hours
-    3. Build response object
+    Para cada UVA ID:
+    1. Llamar a get_last_connection(uva_id)
+    2. Verificar si el timestamp está dentro de las últimas 24 horas
+    3. Construir el objeto de respuesta
 
-    Returns: {uva_id: {connection: bool, ts: int}}
+    Devuelve: {uva_id: {connection: bool, ts: int}}
     """
 ```
 
-**Get Last Measurement**: `get_last_connection(uva_id)`
+**Obtener Última Medición**: `get_last_connection(uva_id)`
 ```python
 def get_last_connection(uva_id):
     """
-    Query AppSync for latest measurement
+    Consultar AppSync por la última medición
 
-    GraphQL Query:
+    Consulta GraphQL:
     measurementsByUvaIDAndTs(
       uvaID: $id
       sortDirection: DESC
       limit: 1
     )
 
-    Fallback: If no measurements, query UVA creation date
+    Fallback: Si no hay mediciones, consultar la fecha de creación del UVA
 
-    Returns: timestamp_ms (int)
+    Devuelve: timestamp_ms (int)
     """
 ```
 
-**GraphQL Query**:
+**Consulta GraphQL**:
 ```graphql
 query GetLastMeasurement($uvaID: ID!) {
   measurementsByUvaIDAndTs(
@@ -572,7 +572,7 @@ query GetLastMeasurement($uvaID: ID!) {
 }
 ```
 
-**Fallback Query** (if no measurements):
+**Consulta Fallback** (si no hay mediciones):
 ```graphql
 query GetUVA($id: ID!) {
   getUVA(id: $id) {
@@ -581,17 +581,17 @@ query GetUVA($id: ID!) {
 }
 ```
 
-**24-Hour Check**:
+**Verificación de 24 Horas**:
 ```python
 def is_within_last_24_hours(ts_ms):
     current_ms = time.time() * 1000
     diff_ms = current_ms - ts_ms
-    return diff_ms <= 86400000  # 24 hours
+    return diff_ms <= 86400000  # 24 horas
 ```
 
-### Generated Outputs
+### Salidas Generadas
 
-**Single Device Response**:
+**Respuesta de Dispositivo Único**:
 ```json
 {
   "statusCode": 200,
@@ -604,7 +604,7 @@ def is_within_last_24_hours(ts_ms):
 }
 ```
 
-**Multiple Devices Response**:
+**Respuesta de Múltiples Dispositivos**:
 ```json
 {
   "statusCode": 200,
@@ -616,7 +616,7 @@ def is_within_last_24_hours(ts_ms):
 }
 ```
 
-**Error Response**:
+**Respuesta de Error**:
 ```json
 {
   "statusCode": 500,
@@ -626,25 +626,25 @@ def is_within_last_24_hours(ts_ms):
 }
 ```
 
-### Required Environment Variables
+### Variables de Entorno Requeridas
 
 ```bash
-# AppSync Endpoint
+# Endpoint AppSync
 APPSYNC_GRAPHQL_URL_USER=https://{api-id}.appsync-api.us-east-1.amazonaws.com/graphql
 
-# API Authentication
+# Autenticación API
 APPSYNC_API_KEY_USER=da2-xxxxxxxxxxxxxxxxxxxxx
 ```
 
-### AWS Services Consumed
+### Servicios AWS Consumidos
 
-| Service | Operation | Purpose |
+| Servicio | Operación | Propósito |
 |---------|-----------|---------|
-| API Gateway | Invoke | Receive HTTP requests |
-| AWS AppSync | GraphQL Query | Get measurements and UVA details |
-| CloudWatch Logs | PutLogEvents | Store execution logs |
+| API Gateway | Invoke | Recibir solicitudes HTTP |
+| AWS AppSync | Consulta GraphQL | Obtener mediciones y detalles del UVA |
+| CloudWatch Logs | PutLogEvents | Almacenar logs de ejecución |
 
-### IAM Permissions Required
+### Permisos IAM Requeridos
 
 ```json
 {
@@ -658,51 +658,51 @@ APPSYNC_API_KEY_USER=da2-xxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-Note: AppSync access controlled via API Key, not IAM
+Nota: El acceso a AppSync está controlado vía API Key, no IAM
 
-### Dependencies
+### Dependencias
 
-**Python Packages**:
+**Paquetes Python**:
 ```
 requests==2.31.0
 ```
 
-**Standard Library**:
-- `json`: Request/response parsing
-- `time`: Timestamp calculations
-- `os`: Environment variables
+**Librería Estándar**:
+- `json`: Parseo de solicitudes/respuestas
+- `time`: Cálculos de timestamps
+- `os`: Variables de entorno
 
-### Error Handling
+### Manejo de Errores
 
-- **Missing path parameter**: Returns 400 Bad Request
-- **GraphQL query failure**: Returns 500 Internal Server Error
-- **Invalid UVA ID**: Returns empty measurement, falls back to creation date
-- **Network timeout**: Retries handled by requests library (default 3 attempts)
+- **Parámetro de ruta faltante**: Devuelve 400 Bad Request
+- **Fallo en consulta GraphQL**: Devuelve 500 Internal Server Error
+- **UVA ID inválido**: Devuelve medición vacía, recurre a la fecha de creación
+- **Timeout de red**: Los reintentos son manejados por la librería requests (3 intentos por defecto)
 
-### Performance Characteristics
+### Características de Rendimiento
 
-- **Cold Start**: ~2 seconds
-- **Warm Execution**: 500-800ms per device
-- **Bulk Query**: ~500ms + (100ms × number of devices)
-- **Memory Usage**: ~100 MB
+- **Arranque en Frío**: ~2 segundos
+- **Ejecución en Caliente**: 500-800ms por dispositivo
+- **Consulta Masiva**: ~500ms + (100ms × número de dispositivos)
+- **Uso de Memoria**: ~100 MB
 
 ---
 
-## Function 4: CreateRacimo
+## Función 4: CreateRacimo
 
-### Overview
-**Name**: CreateRacimo
-**Purpose**: REST API endpoint to create RACIMO (device cluster) with duplicate prevention
-**Location**: `SAM-UVA-App-Integrations/lambdas/createRacimo/create_racimo.py`
+### Descripción General
+**Nombre**: CreateRacimo
+**Propósito**: Endpoint REST API para crear RACIMO (clúster de dispositivos) con prevención de duplicados
+**Ubicación**: `SAM-UVA-App-Integrations/lambdas/createRacimo/create_racimo.py`
 
-### Trigger
+### Disparador
 
-**Type**: API Gateway REST API
-**HTTP Method**: POST
-**Path**: `/CreateRacimo`
-**Authorization**: AWS_IAM
+**Tipo**: REST API de API Gateway
+**Método HTTP**: POST
+**Ruta**: `/CreateRacimo`
+**Autorización**: AWS_IAM
 
-**Sample Request**:
+**Solicitud de Ejemplo**:
 ```bash
 POST /CreateRacimo
 Content-Type: application/json
@@ -714,35 +714,35 @@ Authorization: AWS4-HMAC-SHA256 ...
 }
 ```
 
-### Expected Inputs
+### Entradas Esperadas
 
-**Request Body** (JSON):
+**Cuerpo de la Solicitud** (JSON):
 ```json
 {
-  "name": "string",       // Required: RACIMO display name
-  "linkageCode": "string" // Required: Unique identifier for linkage
+  "name": "string",       // Requerido: Nombre visible del RACIMO
+  "linkageCode": "string" // Requerido: Identificador único para la vinculación
 }
 ```
 
-**Event Structure**:
+**Estructura del Evento**:
 ```json
 {
   "body": "{\"name\":\"Hospital Floor 3\",\"linkageCode\":\"HF3-2024-001\"}"
 }
 ```
 
-### Processing Logic
+### Lógica de Procesamiento
 
-**Function**: `lambda_handler(event, context)`
+**Función**: `lambda_handler(event, context)`
 
-**Workflow**:
-1. Parse and validate request body
-2. Check if RACIMO with linkageCode exists
-3. If exists: return existing data
-4. If not exists: create new RACIMO
-5. Return result
+**Flujo de Trabajo**:
+1. Parsear y validar el cuerpo de la solicitud
+2. Verificar si existe un RACIMO con el linkageCode
+3. Si existe: devolver los datos existentes
+4. Si no existe: crear el nuevo RACIMO
+5. Devolver el resultado
 
-**Validation**:
+**Validación**:
 ```python
 body = json.loads(event.get('body', '{}'))
 name = body.get('name')
@@ -755,20 +755,20 @@ if not name or not linkage_code:
     }
 ```
 
-**Existence Check**: `check_racimo_exists(linkage_code)`
+**Verificación de Existencia**: `check_racimo_exists(linkage_code)`
 ```python
 def check_racimo_exists(linkage_code):
     """
-    Query AppSync for RACIMO with matching linkageCode
+    Consultar AppSync por RACIMO con linkageCode coincidente
 
-    GraphQL Query:
+    Consulta GraphQL:
     listRACIMOS(filter: {LinkageCode: {eq: $code}})
 
-    Returns: RACIMO object if exists, None otherwise
+    Devuelve: Objeto RACIMO si existe, None de lo contrario
     """
 ```
 
-**GraphQL Query**:
+**Consulta GraphQL**:
 ```graphql
 query CheckRACIMO($linkageCode: String!) {
   listRACIMOS(filter: {LinkageCode: {eq: $linkageCode}}) {
@@ -782,24 +782,24 @@ query CheckRACIMO($linkageCode: String!) {
 }
 ```
 
-**Create RACIMO**: `create_racimo(name, linkage_code)`
+**Crear RACIMO**: `create_racimo(name, linkage_code)`
 ```python
 def create_racimo(name, linkage_code):
     """
-    Create new RACIMO via AppSync
+    Crear nuevo RACIMO vía AppSync
 
-    GraphQL Mutation:
+    Mutación GraphQL:
     createRACIMO(input: {
       name: $name
       LinkageCode: $linkageCode
       path: "racimos/{linkageCode}/config.json"
     })
 
-    Returns: New RACIMO ID
+    Devuelve: Nuevo RACIMO ID
     """
 ```
 
-**GraphQL Mutation**:
+**Mutación GraphQL**:
 ```graphql
 mutation CreateRACIMO($input: CreateRACIMOInput!) {
   createRACIMO(input: $input) {
@@ -811,7 +811,7 @@ mutation CreateRACIMO($input: CreateRACIMOInput!) {
 }
 ```
 
-**Input Object**:
+**Objeto de Entrada**:
 ```json
 {
   "name": "Hospital Floor 3",
@@ -820,16 +820,16 @@ mutation CreateRACIMO($input: CreateRACIMOInput!) {
 }
 ```
 
-**AWS SigV4 Signing**:
+**Firma AWS SigV4**:
 ```python
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 
 def sign_request(method, url, body, headers):
     """
-    Sign request with AWS credentials from Lambda execution role
+    Firmar solicitud con las credenciales AWS del rol de ejecución de Lambda
 
-    Uses SigV4Auth with 'appsync' service and 'us-east-1' region
+    Utiliza SigV4Auth con servicio 'appsync' y región 'us-east-1'
     """
     credentials = boto3.Session().get_credentials()
     request = AWSRequest(method=method, url=url, data=body, headers=headers)
@@ -837,9 +837,9 @@ def sign_request(method, url, body, headers):
     return dict(request.headers)
 ```
 
-### Generated Outputs
+### Salidas Generadas
 
-**RACIMO Created**:
+**RACIMO Creado**:
 ```json
 {
   "statusCode": 200,
@@ -851,7 +851,7 @@ def sign_request(method, url, body, headers):
 }
 ```
 
-**RACIMO Already Exists**:
+**RACIMO Ya Existe**:
 ```json
 {
   "statusCode": 200,
@@ -868,7 +868,7 @@ def sign_request(method, url, body, headers):
 }
 ```
 
-**Validation Error**:
+**Error de Validación**:
 ```json
 {
   "statusCode": 400,
@@ -878,7 +878,7 @@ def sign_request(method, url, body, headers):
 }
 ```
 
-**Server Error**:
+**Error del Servidor**:
 ```json
 {
   "statusCode": 500,
@@ -889,26 +889,26 @@ def sign_request(method, url, body, headers):
 }
 ```
 
-### Required Environment Variables
+### Variables de Entorno Requeridas
 
 ```bash
-# AppSync Endpoint
+# Endpoint AppSync
 APPSYNC_GRAPHQL_URL_USER=https://{api-id}.appsync-api.us-east-1.amazonaws.com/graphql
 ```
 
-Note: API Key not required - uses SigV4 signing instead
+Nota: No se requiere API Key - se usa firma SigV4 en su lugar
 
-### AWS Services Consumed
+### Servicios AWS Consumidos
 
-| Service | Operation | Purpose |
+| Servicio | Operación | Propósito |
 |---------|-----------|---------|
-| API Gateway | Invoke | Receive HTTP POST requests |
-| AWS AppSync | GraphQL Query | Check RACIMO existence |
-| AWS AppSync | GraphQL Mutation | Create new RACIMO |
-| AWS STS | GetCallerIdentity | Retrieve credentials for signing (implicit) |
-| CloudWatch Logs | PutLogEvents | Store execution logs |
+| API Gateway | Invoke | Recibir solicitudes HTTP POST |
+| AWS AppSync | Consulta GraphQL | Verificar existencia del RACIMO |
+| AWS AppSync | Mutación GraphQL | Crear nuevo RACIMO |
+| AWS STS | GetCallerIdentity | Obtener credenciales para la firma (implícito) |
+| CloudWatch Logs | PutLogEvents | Almacenar logs de ejecución |
 
-### IAM Permissions Required
+### Permisos IAM Requeridos
 
 ```json
 {
@@ -930,39 +930,39 @@ Note: API Key not required - uses SigV4 signing instead
 }
 ```
 
-### Dependencies
+### Dependencias
 
-**Python Packages**:
+**Paquetes Python**:
 ```
 boto3==1.34.29
 botocore==1.34.29
 requests==2.31.0
 ```
 
-**Standard Library**:
-- `json`: Request/response parsing
-- `os`: Environment variables
+**Librería Estándar**:
+- `json`: Parseo de solicitudes/respuestas
+- `os`: Variables de entorno
 
-### Error Handling
+### Manejo de Errores
 
-- **Missing fields**: Returns 400 with validation error
-- **GraphQL query error**: Returns 500 with error details
-- **GraphQL mutation error**: Returns 500 with error details
-- **Invalid JSON body**: Returns 400 with parse error
-- **Authentication failure**: API Gateway returns 403 before Lambda invocation
+- **Campos faltantes**: Devuelve 400 con error de validación
+- **Error en consulta GraphQL**: Devuelve 500 con detalles del error
+- **Error en mutación GraphQL**: Devuelve 500 con detalles del error
+- **Cuerpo JSON inválido**: Devuelve 400 con error de parseo
+- **Fallo de autenticación**: API Gateway devuelve 403 antes de la invocación de Lambda
 
-### Performance Characteristics
+### Características de Rendimiento
 
-- **Cold Start**: ~2-3 seconds
-- **Warm Execution (exists)**: ~800ms (query only)
-- **Warm Execution (create)**: 1.5-2s (query + mutation)
-- **Memory Usage**: ~120 MB
+- **Arranque en Frío**: ~2-3 segundos
+- **Ejecución en Caliente (existe)**: ~800ms (solo consulta)
+- **Ejecución en Caliente (crear)**: 1.5-2s (consulta + mutación)
+- **Uso de Memoria**: ~120 MB
 
 ---
 
-## Common Configuration
+## Configuración Común
 
-### Global Lambda Settings (SAM Template)
+### Configuración Global de Lambda (Plantilla SAM)
 
 ```yaml
 Globals:
@@ -974,45 +974,45 @@ Globals:
       - x86_64
 ```
 
-### Logging Configuration
+### Configuración de Logs
 
-All functions log to CloudWatch Logs with format:
+Todas las funciones registran en CloudWatch Logs con el formato:
 ```
 /aws/lambda/{FunctionName}
 ```
 
-**Log Retention**: Configured in CloudFormation (default: 7 days)
+**Retención de Logs**: Configurada en CloudFormation (por defecto: 7 días)
 
-### Environment-Specific Resources
+### Recursos Específicos por Entorno
 
-Lambda functions automatically receive environment-specific parameters during deployment based on git branch:
-- `develop` branch → develop environment
-- `test` branch → test environment
-- `main` branch → production environment
+Las funciones Lambda reciben automáticamente los parámetros específicos del entorno durante el despliegue según la rama git:
+- Rama `develop` → entorno develop
+- Rama `test` → entorno test
+- Rama `main` → entorno de producción
 
-Configuration loaded from `parameters.json` during deployment.
+La configuración se carga desde `parameters.json` durante el despliegue.
 
 ---
 
-## Monitoring and Alerts
+## Monitoreo y Alertas
 
-### Key Metrics to Monitor
+### Métricas Clave a Monitorear
 
-| Metric | Threshold | Alert Action |
-|--------|-----------|--------------|
-| Lambda Errors | > 5% | Page on-call engineer |
-| Lambda Duration | > 30s | Investigate performance |
-| Stream Iterator Age | > 10min | Check Lambda throttling |
-| Concurrent Executions | > 900 | Review account limits |
-| SNS Publish Failures | > 0 | Check topic permissions |
+| Métrica | Umbral | Acción de Alerta |
+|---------|--------|------------------|
+| Errores de Lambda | > 5% | Notificar al ingeniero de guardia |
+| Duración de Lambda | > 30s | Investigar rendimiento |
+| Antigüedad del Iterador del Stream | > 10min | Verificar throttling de Lambda |
+| Ejecuciones Concurrentes | > 900 | Revisar límites de cuenta |
+| Fallos de Publicación SNS | > 0 | Verificar permisos del topic |
 
-### Troubleshooting Commands
+### Comandos de Diagnóstico
 
 ```bash
-# View recent logs
+# Ver logs recientes
 aws logs tail /aws/lambda/DynamoDBEventProcessorFunction --follow
 
-# Check Lambda metrics
+# Verificar métricas de Lambda
 aws cloudwatch get-metric-statistics \
   --namespace AWS/Lambda \
   --metric-name Errors \
@@ -1022,6 +1022,6 @@ aws cloudwatch get-metric-statistics \
   --period 3600 \
   --statistics Sum
 
-# Invoke function locally
+# Invocar función localmente
 sam local invoke DynamoDBEventProcessorFunction -e events/test-event.json
 ```

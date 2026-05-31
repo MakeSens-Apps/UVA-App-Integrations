@@ -1,88 +1,88 @@
-# Features
+# Funcionalidades
 
-## Overview
+## Descripción General
 
-UVA-App-Integrations provides four core features for managing IoT device data and synchronization across the MakeSens ecosystem. Each feature is implemented as an independent serverless function that responds to specific events or API requests.
+UVA-App-Integrations provee cuatro funcionalidades principales para gestionar datos de dispositivos IoT y sincronización en el ecosistema MakeSens. Cada funcionalidad está implementada como una función serverless independiente que responde a eventos o solicitudes API específicas.
 
 ---
 
-## Feature 1: Real-time Device Data Processing
+## Funcionalidad 1: Procesamiento de Datos de Dispositivos en Tiempo Real
 
-### Description
-Automatically processes and distributes measurement data from UVA devices to downstream consumers in real-time using a streaming architecture.
+### Descripción
+Procesa y distribuye automáticamente datos de mediciones de dispositivos UVA a consumidores downstream en tiempo real mediante una arquitectura de streaming.
 
-### Business Value
-- Enables real-time monitoring of device vitals
-- Decouples data producers from consumers via publish-subscribe pattern
-- Ensures measurement data reaches analytics and alerting systems immediately
-- Transforms data format for cross-platform compatibility
+### Valor de Negocio
+- Habilita el monitoreo en tiempo real de los datos vitales de los dispositivos
+- Desacopla los productores de datos de los consumidores mediante el patrón publicar-suscribir
+- Garantiza que los datos de mediciones lleguen inmediatamente a los sistemas de analítica y alertas
+- Transforma el formato de datos para compatibilidad multiplataforma
 
-### Use Cases
+### Casos de Uso
 
-#### UC1.1: Stream Temperature Measurement
-**Actor**: UVA Device
-**Trigger**: Device writes temperature reading to Measurement table
-**Flow**:
-1. Device inserts measurement record with temperature data
-2. DynamoDB Stream captures INSERT event
-3. Lambda processes and transforms data format
-4. Lambda publishes message to SNS topic
-5. Monitoring dashboards receive update within seconds
+#### CU1.1: Transmitir Medición de Temperatura
+**Actor**: Dispositivo UVA
+**Disparador**: El dispositivo escribe una lectura de temperatura en la tabla Measurement
+**Flujo**:
+1. El dispositivo inserta un registro de medición con datos de temperatura
+2. DynamoDB Stream captura el evento INSERT
+3. Lambda procesa y transforma el formato de datos
+4. Lambda publica el mensaje en el topic SNS
+5. Los dashboards de monitoreo reciben la actualización en segundos
 
-**Outcome**: Real-time temperature visible in dashboard
+**Resultado**: Temperatura en tiempo real visible en el dashboard
 
-#### UC1.2: Distribute Multi-sensor Data
-**Actor**: Multiple UVA devices
-**Trigger**: Batch of measurements from different sensors
-**Flow**:
-1. Multiple devices insert measurements (batch of 10)
-2. Lambda receives batched stream events
-3. Lambda processes each measurement independently
-4. Lambda publishes all to SNS in sequence
-5. Multiple subscribers receive data (analytics, alerting, storage)
+#### CU1.2: Distribuir Datos de Múltiples Sensores
+**Actor**: Múltiples dispositivos UVA
+**Disparador**: Lote de mediciones de diferentes sensores
+**Flujo**:
+1. Múltiples dispositivos insertan mediciones (lote de 10)
+2. Lambda recibe los eventos del stream en lote
+3. Lambda procesa cada medición de forma independiente
+4. Lambda publica todas en SNS en secuencia
+5. Múltiples suscriptores reciben los datos (analítica, alertas, almacenamiento)
 
-**Outcome**: All consumers receive complete dataset
+**Resultado**: Todos los consumidores reciben el conjunto completo de datos
 
-### Workflow
+### Flujo de Trabajo
 
 ```
 ┌───────────────┐
-│ UVA Device    │
-│ Writes Data   │
+│ Dispositivo   │
+│ UVA Escribe   │
 └───────┬───────┘
         │
         ▼
 ┌───────────────────┐
-│ Measurement Table │
-│ INSERT Event      │
+│ Tabla Measurement │
+│ Evento INSERT     │
 └───────┬───────────┘
         │
         ▼
 ┌─────────────────────────┐
-│ Stream Processing       │
-│ - Filter INSERT only    │
-│ - Remove DynamoDB types │
-│ - Convert timestamps    │
+│ Procesamiento Stream    │
+│ - Filtrar solo INSERT   │
+│ - Remover tipos DynamoDB│
+│ - Convertir timestamps  │
 └───────┬─────────────────┘
         │
         ▼
 ┌───────────────────┐
-│ SNS Publish       │
-│ Attributes:       │
+│ Publicación SNS   │
+│ Atributos:        │
 │ - typeDevice=UVA  │
 │ - typeData=RAW    │
 └───────┬───────────┘
         │
         ▼
 ┌───────────────────┐
+│ Suscriptores      │
 │ Downstream        │
-│ Subscribers       │
 └───────────────────┘
 ```
 
-### Data Transformations
+### Transformaciones de Datos
 
-**Input (DynamoDB Format)**:
+**Entrada (Formato DynamoDB)**:
 ```json
 {
   "id": {"S": "uva123"},
@@ -95,7 +95,7 @@ Automatically processes and distributes measurement data from UVA devices to dow
 }
 ```
 
-**Output (SNS Message)**:
+**Salida (Mensaje SNS)**:
 ```json
 {
   "id": "uva123",
@@ -108,76 +108,76 @@ Automatically processes and distributes measurement data from UVA devices to dow
 }
 ```
 
-### Configuration
-- **Batch Size**: 10 records per Lambda invocation
-- **Batching Window**: 10 seconds maximum wait
-- **Message Attributes**: `typeDevice=UVA`, `typeData=RAW`
+### Configuración
+- **Tamaño de Lote**: 10 registros por invocación de Lambda
+- **Ventana de Agrupamiento**: Espera máxima de 10 segundos
+- **Atributos del Mensaje**: `typeDevice=UVA`, `typeData=RAW`
 
 ---
 
-## Feature 2: Device Synchronization to MakeSensCloud
+## Funcionalidad 2: Sincronización de Dispositivos con MakeSensCloud
 
-### Description
-Automatically creates and updates device records in MakeSensCloud when UVA devices are registered or modified, ensuring centralized device inventory stays synchronized.
+### Descripción
+Crea y actualiza automáticamente registros de dispositivos en MakeSensCloud cuando los dispositivos UVA son registrados o modificados, garantizando que el inventario centralizado de dispositivos esté siempre sincronizado.
 
-### Business Value
-- Maintains single source of truth for device inventory
-- Eliminates manual device registration in cloud
-- Automatically propagates organizational hierarchy (RACIMO → Organization → Device)
-- Keeps location data synchronized for mapping and geofencing
+### Valor de Negocio
+- Mantiene una única fuente de verdad para el inventario de dispositivos
+- Elimina el registro manual de dispositivos en la nube
+- Propaga automáticamente la jerarquía organizacional (RACIMO → Organization → Device)
+- Mantiene los datos de ubicación sincronizados para mapas y geofencing
 
-### Use Cases
+### Casos de Uso
 
-#### UC2.1: Register New Device in Cloud
-**Actor**: System Administrator
-**Trigger**: New UVA created in database
-**Flow**:
-1. Admin creates new UVA record with RACIMO association
-2. DynamoDB Stream triggers UvaToCloudFunction
-3. Lambda queries RACIMO table for LinkageCode
-4. Lambda scans Organization table to find matching org
-5. Lambda calls createDevice GraphQL mutation
-6. Device appears in MakeSensCloud organization
+#### CU2.1: Registrar Nuevo Dispositivo en la Nube
+**Actor**: Administrador del Sistema
+**Disparador**: Nuevo UVA creado en la base de datos
+**Flujo**:
+1. El administrador crea un nuevo registro UVA con asociación a RACIMO
+2. DynamoDB Stream dispara UvaToCloudFunction
+3. Lambda consulta la tabla RACIMO para obtener el LinkageCode
+4. Lambda escanea la tabla Organization para encontrar la organización correspondiente
+5. Lambda llama a la mutación GraphQL createDevice
+6. El dispositivo aparece en la organización de MakeSensCloud
 
-**Outcome**: Device automatically registered in cloud without manual intervention
+**Resultado**: Dispositivo registrado automáticamente en la nube sin intervención manual
 
-#### UC2.2: Update Device Location
-**Actor**: UVA Device or Admin
-**Trigger**: UVA record updated with GPS coordinates
-**Flow**:
-1. UVA record modified with latitude/longitude
-2. DynamoDB Stream triggers UvaToCloudFunction (MODIFY event)
-3. Lambda extracts location data
-4. Lambda checks Location table for existing record
-5. If exists: Lambda calls updateLocation mutation
-6. If not exists: Lambda calls createLocation mutation
-7. Device location updated in cloud
+#### CU2.2: Actualizar Ubicación del Dispositivo
+**Actor**: Dispositivo UVA o Administrador
+**Disparador**: Registro UVA actualizado con coordenadas GPS
+**Flujo**:
+1. Registro UVA modificado con latitud/longitud
+2. DynamoDB Stream dispara UvaToCloudFunction (evento MODIFY)
+3. Lambda extrae los datos de ubicación
+4. Lambda verifica la tabla Location en busca de un registro existente
+5. Si existe: Lambda llama a la mutación updateLocation
+6. Si no existe: Lambda llama a la mutación createLocation
+7. La ubicación del dispositivo se actualiza en la nube
 
-**Outcome**: Device location visible on cloud map interface
+**Resultado**: Ubicación del dispositivo visible en la interfaz de mapa de la nube
 
-#### UC2.3: Handle Incomplete Location Data
-**Actor**: System
-**Trigger**: UVA updated with partial location data
-**Flow**:
-1. UVA record updated with only latitude (missing longitude)
-2. Lambda validates location completeness
-3. Lambda skips location sync (both coordinates required)
-4. Lambda logs incomplete data warning
+#### CU2.3: Manejar Datos de Ubicación Incompletos
+**Actor**: Sistema
+**Disparador**: UVA actualizado con datos de ubicación parciales
+**Flujo**:
+1. Registro UVA actualizado solo con latitud (falta longitud)
+2. Lambda valida la completitud de la ubicación
+3. Lambda omite la sincronización de ubicación (se requieren ambas coordenadas)
+4. Lambda registra una advertencia de datos incompletos
 
-**Outcome**: System prevents invalid location records
+**Resultado**: El sistema previene registros de ubicación inválidos
 
-### Workflow
+### Flujo de Trabajo
 
 ```
 ┌─────────────────┐
-│ UVA Table       │
+│ Tabla UVA       │
 │ INSERT/MODIFY   │
 └────────┬────────┘
          │
          ▼
     ┌────────┐
-    │ Event  │
-    │ Type?  │
+    │ Tipo   │
+    │ Evento?│
     └───┬────┘
         │
     ┌───┴────────────────┐
@@ -185,75 +185,75 @@ Automatically creates and updates device records in MakeSensCloud when UVA devic
 INSERT│                  │MODIFY
     ▼                    ▼
 ┌───────────┐      ┌─────────────┐
-│ Device    │      │ Location    │
-│ Sync      │      │ Sync        │
+│ Sync de   │      │ Sync de     │
+│ Dispositivo│     │ Ubicación   │
 │           │      │             │
-│ 1. Get    │      │ 1. Extract  │
+│ 1. Obtener│      │ 1. Extraer  │
 │ RACIMO    │      │    lat/lng  │
 │           │      │             │
-│ 2. Get    │      │ 2. Query    │
-│ Org       │      │    Location │
-│           │      │    table    │
-│ 3. Create │      │             │
-│ Device    │      │ 3. Create/  │
-│           │      │    Update   │
+│ 2. Obtener│      │ 2. Consultar│
+│ Org       │      │    tabla    │
+│           │      │    Location │
+│ 3. Crear  │      │             │
+│ Dispositivo│     │ 3. Crear/   │
+│           │      │    Actualizar│
 └───────────┘      └─────────────┘
 ```
 
-### Integration Points
+### Puntos de Integración
 
-**RACIMO Table**:
-- Purpose: Retrieve LinkageCode for organization matching
-- Query: `GetItem` by RACIMO ID from UVA record
+**Tabla RACIMO**:
+- Propósito: Recuperar LinkageCode para coincidir con la organización
+- Consulta: `GetItem` por RACIMO ID del registro UVA
 
-**Organization Table**:
-- Purpose: Find organization by linkage code
-- Query: `Scan` with filter expression `linkage_code = {code}`
+**Tabla Organization**:
+- Propósito: Encontrar la organización por código de vinculación
+- Consulta: `Scan` con expresión de filtro `linkage_code = {code}`
 
-**MakeSensCloud AppSync**:
-- `createDevice`: Creates device under organization
-- `createLocation`: Adds geographic coordinates
-- `updateLocation`: Updates existing coordinates
+**AppSync de MakeSensCloud**:
+- `createDevice`: Crea el dispositivo bajo la organización
+- `createLocation`: Agrega coordenadas geográficas
+- `updateLocation`: Actualiza coordenadas existentes
 
-### Error Handling
-- Missing RACIMO: Logs error, skips device creation
-- Organization not found: Logs error, skips device creation
-- GraphQL API error: Lambda fails, DynamoDB Stream retries
-- Invalid location data: Skips location sync, continues processing
+### Manejo de Errores
+- RACIMO no encontrado: Registra el error, omite la creación del dispositivo
+- Organización no encontrada: Registra el error, omite la creación del dispositivo
+- Error de la API GraphQL: Lambda falla, DynamoDB Stream reintenta
+- Datos de ubicación inválidos: Omite la sincronización de ubicación, continúa procesando
 
 ---
 
-## Feature 3: Connection Status Monitoring
+## Funcionalidad 3: Monitoreo del Estado de Conexión
 
-### Description
-Provides a REST API endpoint to check if UVA devices are actively connected (measured within last 24 hours) with timestamp of last activity.
+### Descripción
+Provee un endpoint REST API para verificar si los dispositivos UVA están activamente conectados (con medición en las últimas 24 horas) junto con el timestamp de la última actividad.
 
-### Business Value
-- Enables proactive maintenance alerts for disconnected devices
-- Supports SLA monitoring for device uptime
-- Provides data for device health dashboards
-- Allows bulk status checks for fleet management
+### Valor de Negocio
+- Habilita alertas proactivas de mantenimiento para dispositivos desconectados
+- Soporta el monitoreo de SLA para el tiempo de actividad de los dispositivos
+- Provee datos para dashboards de salud de dispositivos
+- Permite verificaciones de estado masivas para la gestión de flota
 
-### Use Cases
+### Casos de Uso
 
-#### UC3.1: Check Single Device Status
-**Actor**: Monitoring System
-**Trigger**: Periodic health check (every 5 minutes)
-**Flow**:
-1. System sends GET request to `/{uva_id}/connection`
-2. Lambda queries AppSync for latest measurement
-3. Lambda compares measurement timestamp to current time
-4. If < 24 hours: returns `connection: true`
-5. If > 24 hours: returns `connection: false`
-6. Monitoring system records status
+#### CU3.1: Verificar Estado de un Solo Dispositivo
+**Actor**: Sistema de Monitoreo
+**Disparador**: Verificación periódica de salud (cada 5 minutos)
+**Flujo**:
+1. El sistema envía una solicitud GET a `/{uva_id}/connection`
+2. Lambda consulta AppSync por la última medición
+3. Lambda compara el timestamp de la medición con la hora actual
+4. Si < 24 horas: devuelve `connection: true`
+5. Si > 24 horas: devuelve `connection: false`
+6. El sistema de monitoreo registra el estado
 
-**Request**:
+**Solicitud**:
 ```
 GET /uva123/connection
 Authorization: AWS4-HMAC-SHA256 ...
 ```
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "uva123": {
@@ -263,22 +263,22 @@ Authorization: AWS4-HMAC-SHA256 ...
 }
 ```
 
-#### UC3.2: Bulk Status Check
-**Actor**: Dashboard Application
-**Trigger**: User views fleet status page
-**Flow**:
-1. Dashboard sends GET request with multiple IDs: `?ids=uva1,uva2,uva3`
-2. Lambda parses comma-separated list
-3. Lambda queries AppSync for each UVA
-4. Lambda returns status object with all devices
-5. Dashboard displays color-coded status (green/red)
+#### CU3.2: Verificación Masiva de Estado
+**Actor**: Aplicación Dashboard
+**Disparador**: El usuario ve la página de estado de la flota
+**Flujo**:
+1. El dashboard envía una solicitud GET con múltiples IDs: `?ids=uva1,uva2,uva3`
+2. Lambda analiza la lista separada por comas
+3. Lambda consulta AppSync por cada UVA
+4. Lambda devuelve un objeto de estado con todos los dispositivos
+5. El dashboard muestra el estado con código de color (verde/rojo)
 
-**Request**:
+**Solicitud**:
 ```
 GET /all/connection?ids=uva123,uva456,uva789
 ```
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "uva123": {"connection": true, "ts": 1705318200000},
@@ -287,69 +287,69 @@ GET /all/connection?ids=uva123,uva456,uva789
 }
 ```
 
-#### UC3.3: Fallback to Creation Date
-**Actor**: Monitoring System
-**Trigger**: Device has no measurements yet
-**Flow**:
-1. System checks connection for newly provisioned device
-2. Lambda queries measurements (returns empty)
-3. Lambda falls back to UVA creation date
-4. Returns creation timestamp as last activity
-5. System marks as "new device" based on age
+#### CU3.3: Fallback a la Fecha de Creación
+**Actor**: Sistema de Monitoreo
+**Disparador**: El dispositivo aún no tiene mediciones
+**Flujo**:
+1. El sistema verifica la conexión de un dispositivo recién provisionado
+2. Lambda consulta mediciones (devuelve vacío)
+3. Lambda recurre a la fecha de creación del UVA
+4. Devuelve el timestamp de creación como última actividad
+5. El sistema marca como "nuevo dispositivo" según su antigüedad
 
-**Outcome**: New devices show status based on registration time
+**Resultado**: Los nuevos dispositivos muestran estado basado en el tiempo de registro
 
-### Workflow
+### Flujo de Trabajo
 
 ```
-API Request
+Solicitud API
     │
     ▼
 ┌──────────────┐
-│ Parse Path   │
-│ Single or    │
-│ Multiple?    │
+│ Analizar Ruta│
+│ ¿Simple o    │
+│ Múltiple?    │
 └──────┬───────┘
        │
    ┌───┴─────────┐
    │             │
-Single         Multiple
+Simple         Múltiple
    │             │
    ▼             ▼
 ┌────────┐   ┌────────────┐
-│ Query  │   │ Loop each  │
-│ AppSync│   │ ID, Query  │
-└───┬────┘   └─────┬──────┘
+│Consultar│  │ Iterar     │
+│AppSync  │  │ cada ID,   │
+└───┬────┘  └─────┬──────┘
     │              │
     └──────┬───────┘
            ▼
     ┌──────────────┐
-    │ Measurements │
-    │ Found?       │
+    │ ¿Mediciones  │
+    │ Encontradas? │
     └──────┬───────┘
            │
       ┌────┴────┐
       │         │
-    Yes        No
+     Sí         No
       │         │
       ▼         ▼
    ┌────┐   ┌────────┐
-   │ Use│   │ Fallback│
-   │ ts │   │ to UVA  │
-   │    │   │ created │
+   │ Usar│  │Fallback│
+   │ ts  │  │ fecha  │
+   │     │  │creación│
    └─┬──┘   └────┬────┘
      │           │
      └─────┬─────┘
            ▼
     ┌──────────────┐
-    │ Check < 24h? │
+    │ ¿< 24 horas? │
     └──────┬───────┘
            │
            ▼
-    Return Response
+    Devolver Respuesta
 ```
 
-### GraphQL Query
+### Consulta GraphQL
 
 ```graphql
 query GetLastMeasurement($uvaID: ID!) {
@@ -365,47 +365,47 @@ query GetLastMeasurement($uvaID: ID!) {
 }
 ```
 
-### Connection Logic
+### Lógica de Conexión
 
 ```python
 def is_within_last_24_hours(timestamp_ms):
     current_time = time.time() * 1000
     time_difference = current_time - timestamp_ms
-    return time_difference <= 86400000  # 24 hours in milliseconds
+    return time_difference <= 86400000  # 24 horas en milisegundos
 ```
 
-### Authentication
-- **Method**: AWS_IAM
-- **Requirements**: Signed request with valid AWS credentials
-- **Permissions**: API Gateway execution role must allow invocation
+### Autenticación
+- **Método**: AWS_IAM
+- **Requisitos**: Solicitud firmada con credenciales AWS válidas
+- **Permisos**: El rol de ejecución de API Gateway debe permitir la invocación
 
 ---
 
-## Feature 4: RACIMO Cluster Management
+## Funcionalidad 4: Gestión de Clústeres RACIMO
 
-### Description
-Provides a REST API endpoint to create new RACIMO (device cluster) records with linkage codes, preventing duplicates and establishing configuration paths.
+### Descripción
+Provee un endpoint REST API para crear nuevos registros de RACIMO (clúster de dispositivos) con códigos de vinculación, previniendo duplicados y estableciendo rutas de configuración.
 
-### Business Value
-- Simplifies cluster creation through API instead of direct database access
-- Prevents duplicate RACIMOs with same linkage code
-- Establishes standard configuration path convention
-- Supports organizational hierarchy for multi-tenant deployments
+### Valor de Negocio
+- Simplifica la creación de clústeres a través de la API en lugar del acceso directo a la base de datos
+- Previene RACIMOs duplicados con el mismo código de vinculación
+- Establece una convención estándar para la ruta de configuración
+- Soporta la jerarquía organizacional para despliegues multi-tenant
 
-### Use Cases
+### Casos de Uso
 
-#### UC4.1: Create New RACIMO
-**Actor**: Admin or Provisioning System
-**Trigger**: New customer/site onboarding
-**Flow**:
-1. System sends POST request with cluster name and linkage code
-2. Lambda queries AppSync to check if RACIMO exists
-3. No existing RACIMO found
-4. Lambda creates RACIMO with configuration path
-5. Lambda returns new RACIMO ID
-6. System stores ID for device association
+#### CU4.1: Crear Nuevo RACIMO
+**Actor**: Administrador o Sistema de Provisionamiento
+**Disparador**: Alta de nuevo cliente/sitio
+**Flujo**:
+1. El sistema envía una solicitud POST con el nombre del clúster y el código de vinculación
+2. Lambda consulta AppSync para verificar si el RACIMO existe
+3. No se encuentra un RACIMO existente
+4. Lambda crea el RACIMO con la ruta de configuración
+5. Lambda devuelve el nuevo RACIMO ID
+6. El sistema almacena el ID para la asociación de dispositivos
 
-**Request**:
+**Solicitud**:
 ```json
 POST /CreateRacimo
 Content-Type: application/json
@@ -417,7 +417,7 @@ Authorization: AWS4-HMAC-SHA256 ...
 }
 ```
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "statusCode": 200,
@@ -429,17 +429,17 @@ Authorization: AWS4-HMAC-SHA256 ...
 }
 ```
 
-#### UC4.2: Prevent Duplicate RACIMO
-**Actor**: Provisioning System
-**Trigger**: Accidental duplicate creation attempt
-**Flow**:
-1. System sends POST request with existing linkage code
-2. Lambda queries AppSync for RACIMO with linkage code
-3. Existing RACIMO found
-4. Lambda returns existing RACIMO data without creating duplicate
-5. System uses existing RACIMO ID
+#### CU4.2: Prevenir RACIMO Duplicado
+**Actor**: Sistema de Provisionamiento
+**Disparador**: Intento accidental de creación duplicada
+**Flujo**:
+1. El sistema envía una solicitud POST con un código de vinculación existente
+2. Lambda consulta AppSync por RACIMO con ese código de vinculación
+3. Se encuentra un RACIMO existente
+4. Lambda devuelve los datos del RACIMO existente sin crear un duplicado
+5. El sistema usa el RACIMO ID existente
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "statusCode": 200,
@@ -451,17 +451,17 @@ Authorization: AWS4-HMAC-SHA256 ...
 }
 ```
 
-#### UC4.3: Invalid Request Handling
-**Actor**: Client Application
-**Trigger**: Malformed request body
-**Flow**:
-1. Client sends POST without required fields
-2. Lambda validates request body
-3. Missing name or linkageCode detected
-4. Lambda returns 400 error
-5. Client displays validation error
+#### CU4.3: Manejo de Solicitudes Inválidas
+**Actor**: Aplicación Cliente
+**Disparador**: Cuerpo de solicitud mal formado
+**Flujo**:
+1. El cliente envía un POST sin los campos requeridos
+2. Lambda valida el cuerpo de la solicitud
+3. Se detecta la ausencia de name o linkageCode
+4. Lambda devuelve error 400
+5. El cliente muestra el error de validación
 
-**Response**:
+**Respuesta**:
 ```json
 {
   "statusCode": 400,
@@ -471,7 +471,7 @@ Authorization: AWS4-HMAC-SHA256 ...
 }
 ```
 
-### Workflow
+### Flujo de Trabajo
 
 ```
 POST /CreateRacimo
@@ -479,41 +479,42 @@ POST /CreateRacimo
        │
        ▼
 ┌──────────────┐
-│ Validate     │
-│ Request Body │
+│ Validar      │
+│ Cuerpo       │
+│ Solicitud    │
 └──────┬───────┘
        │
        ▼
 ┌──────────────────┐
-│ Query AppSync:   │
+│ Consultar AppSync│
 │ listRACIMOS      │
-│ filter by        │
+│ filtrar por      │
 │ linkageCode      │
 └──────┬───────────┘
        │
    ┌───┴─────┐
    │         │
-Exists    Not Exists
+Existe    No Existe
    │         │
    ▼         ▼
 ┌─────┐  ┌────────────┐
-│Return│ │ Create     │
-│Exist │ │ RACIMO:    │
-│Data  │ │ - name     │
+│Devolver│ │ Crear     │
+│datos  │ │ RACIMO:    │
+│exist  │ │ - name     │
 └─────┘  │ - linkage  │
          │ - config   │
          └──────┬─────┘
                 │
                 ▼
          ┌──────────────┐
-         │ Return New   │
-         │ RACIMO ID    │
+         │ Devolver     │
+         │ Nuevo ID     │
          └──────────────┘
 ```
 
-### GraphQL Operations
+### Operaciones GraphQL
 
-**Check Existence**:
+**Verificar Existencia**:
 ```graphql
 query CheckRACIMO($linkageCode: String!) {
   listRACIMOS(filter: {LinkageCode: {eq: $linkageCode}}) {
@@ -526,7 +527,7 @@ query CheckRACIMO($linkageCode: String!) {
 }
 ```
 
-**Create RACIMO**:
+**Crear RACIMO**:
 ```graphql
 mutation CreateRACIMO($input: CreateRACIMOInput!) {
   createRACIMO(input: $input) {
@@ -538,89 +539,89 @@ mutation CreateRACIMO($input: CreateRACIMOInput!) {
 }
 ```
 
-### Configuration Path Convention
+### Convención de Ruta de Configuración
 
-**Format**: `racimos/{linkageCode}/config.json`
+**Formato**: `racimos/{linkageCode}/config.json`
 
-**Example**: For linkageCode `HF3-2024-001`, path is:
+**Ejemplo**: Para linkageCode `HF3-2024-001`, la ruta es:
 ```
 racimos/HF3-2024-001/config.json
 ```
 
-**Purpose**: Standardized S3 or configuration storage location for cluster settings
+**Propósito**: Ubicación estandarizada en S3 o almacenamiento de configuración para los ajustes del clúster
 
-### Authentication
+### Autenticación
 
-**Method**: AWS Signature Version 4 (SigV4)
+**Método**: AWS Signature Version 4 (SigV4)
 
-**Implementation**:
+**Implementación**:
 ```python
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 
-# Sign request with Lambda execution role credentials
+# Firmar solicitud con credenciales del rol de ejecución de Lambda
 request = AWSRequest(method='POST', url=endpoint, data=body, headers=headers)
 SigV4Auth(credentials, 'appsync', 'us-east-1').add_auth(request)
 ```
 
-**Benefits**:
-- No API key management required
-- Uses IAM role permissions
-- Better suited for production environments
+**Ventajas**:
+- No se requiere gestión de API keys
+- Utiliza permisos del rol IAM
+- Más adecuado para entornos de producción
 
-### Error Scenarios
+### Escenarios de Error
 
-| Scenario | Status Code | Response |
-|----------|-------------|----------|
-| Missing fields | 400 | `{"error": "Missing required fields"}` |
-| GraphQL query error | 500 | `{"error": "Failed to check RACIMO"}` |
-| GraphQL create error | 500 | `{"error": "Failed to create RACIMO"}` |
-| Authentication failure | 403 | AWS API Gateway standard error |
+| Escenario | Código de Estado | Respuesta |
+|-----------|------------------|-----------|
+| Campos faltantes | 400 | `{"error": "Missing required fields"}` |
+| Error en consulta GraphQL | 500 | `{"error": "Failed to check RACIMO"}` |
+| Error en creación GraphQL | 500 | `{"error": "Failed to create RACIMO"}` |
+| Fallo de autenticación | 403 | Error estándar de API Gateway AWS |
 
 ---
 
-## Cross-cutting Features
+## Funcionalidades Transversales
 
-### Multi-Environment Support
+### Soporte Multi-Entorno
 
-All features support environment isolation:
-- **develop**: Development and testing
-- **test**: Pre-production validation
-- **main**: Production
+Todas las funcionalidades soportan aislamiento por entorno:
+- **develop**: Desarrollo y pruebas
+- **test**: Validación de pre-producción
+- **main**: Producción
 
-Environment determined by:
-1. Git branch name during deployment
-2. Parameters loaded from `parameters.json`
-3. Environment-specific resource ARNs
+El entorno se determina por:
+1. Nombre de la rama git durante el despliegue
+2. Parámetros cargados desde `parameters.json`
+3. ARNs de recursos específicos del entorno
 
-### Error Logging
+### Registro de Errores
 
-All features include comprehensive logging:
-- Request/event data (sanitized)
-- Processing steps and decisions
-- Error details with stack traces
-- Execution duration
+Todas las funcionalidades incluyen registro comprensivo:
+- Datos de solicitud/evento (saneados)
+- Pasos de procesamiento y decisiones tomadas
+- Detalles de errores con trazas de pila
+- Duración de la ejecución
 
-Logs accessible via CloudWatch Logs: `/aws/lambda/{FunctionName}`
+Los logs son accesibles vía CloudWatch Logs: `/aws/lambda/{FunctionName}`
 
-### Retry Behavior
+### Comportamiento de Reintento
 
-**DynamoDB Stream Functions**:
-- Automatic retries on failure
-- Exponential backoff
-- Maximum retry attempts: 3
-- Failed batches sent to DLQ (if configured)
+**Funciones Disparadas por DynamoDB Stream**:
+- Reintentos automáticos en caso de fallo
+- Backoff exponencial
+- Máximo de reintentos: 3
+- Lotes fallidos enviados a DLQ (si está configurada)
 
-**API Gateway Functions**:
-- No automatic retry
-- Client responsible for retry logic
-- Idempotent operations (RACIMO creation checks existence)
+**Funciones Disparadas por API Gateway**:
+- Sin reintento automático
+- El cliente es responsable de la lógica de reintento
+- Operaciones idempotentes (la creación de RACIMO verifica existencia)
 
-### Performance Characteristics
+### Características de Rendimiento
 
-| Feature | Avg Latency | Max Throughput | Bottleneck |
-|---------|-------------|----------------|------------|
-| Data Processing | < 500ms | 1000 events/sec | DynamoDB Stream shards |
-| Device Sync | 1-2s | 100 devices/sec | GraphQL API rate limits |
-| Connection Check | 500-800ms | 50 req/sec | AppSync query performance |
-| RACIMO Creation | 800ms-1.5s | 20 req/sec | GraphQL mutation + query |
+| Funcionalidad | Latencia Promedio | Throughput Máximo | Cuello de Botella |
+|---------------|-------------------|-------------------|-------------------|
+| Procesamiento de Datos | < 500ms | 1000 eventos/seg | Shards de DynamoDB Stream |
+| Sincronización de Dispositivos | 1-2s | 100 dispositivos/seg | Límites de tasa de la API GraphQL |
+| Verificación de Conexión | 500-800ms | 50 req/seg | Rendimiento de consultas AppSync |
+| Creación de RACIMO | 800ms-1.5s | 20 req/seg | Mutación + consulta GraphQL |

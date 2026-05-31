@@ -1,66 +1,66 @@
-# System Architecture
+# Arquitectura del Sistema
 
-## Overview
+## Descripción General
 
-UVA-App-Integrations implements an **event-driven serverless architecture** on AWS, using DynamoDB Streams as the primary event source to trigger data processing and synchronization workflows. The system integrates IoT device data with cloud services through Lambda functions, AppSync GraphQL APIs, and SNS messaging.
+UVA-App-Integrations implementa una **arquitectura serverless orientada a eventos** en AWS, utilizando DynamoDB Streams como fuente principal de eventos para disparar flujos de trabajo de procesamiento y sincronización de datos. El sistema integra datos de dispositivos IoT con servicios cloud a través de funciones Lambda, APIs GraphQL de AppSync y mensajería SNS.
 
-## Architecture Diagram
+## Diagrama de Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           UVA Device Ecosystem                          │
+│                       Ecosistema de Dispositivos UVA                    │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          DynamoDB Tables                                 │
+│                          Tablas DynamoDB                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
 │  │ Measurement  │  │     UVA      │  │   RACIMO     │                  │
 │  │   (Stream)   │  │   (Stream)   │  │              │                  │
 │  └──────┬───────┘  └──────┬───────┘  └──────────────┘                  │
 │         │                  │                                             │
-│         │ Stream Event     │ Stream Event                                │
+│         │ Evento Stream    │ Evento Stream                               │
 └─────────┼──────────────────┼─────────────────────────────────────────────┘
           │                  │
           ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        Lambda Functions Layer                            │
+│                        Capa de Funciones Lambda                          │
 │  ┌────────────────────────────────────────────────────────────────┐    │
 │  │ DynamoDBEventProcessorFunction                                  │    │
-│  │  • Reads: Measurement stream                                    │    │
-│  │  • Processes: INSERT events                                     │    │
-│  │  • Transforms: DynamoDB format → Python types                   │    │
-│  │  • Publishes: SNS (RealTimeDeviceData)                         │    │
+│  │  • Lee: Stream de Measurement                                   │    │
+│  │  • Procesa: Eventos INSERT                                      │    │
+│  │  • Transforma: Formato DynamoDB → Tipos Python                  │    │
+│  │  • Publica: SNS (RealTimeDeviceData)                           │    │
 │  └───────────────────────────────┬────────────────────────────────┘    │
 │                                   │                                      │
 │  ┌────────────────────────────────▼───────────────────────────────┐    │
 │  │ UvaToCloudFunction                                              │    │
-│  │  • Reads: UVA stream (INSERT/MODIFY)                           │    │
-│  │  • Queries: RACIMO, Organization, Location tables              │    │
-│  │  • Creates: Devices in MakeSensCloud via GraphQL               │    │
-│  │  • Updates: Location records with coordinates                  │    │
+│  │  • Lee: Stream UVA (INSERT/MODIFY)                             │    │
+│  │  • Consulta: Tablas RACIMO, Organization, Location             │    │
+│  │  • Crea: Dispositivos en MakeSensCloud vía GraphQL             │    │
+│  │  • Actualiza: Registros de Location con coordenadas            │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                                                                           │
 │  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ UVALastConnection (API Endpoint)                                 │    │
-│  │  • Trigger: API Gateway GET /{id_uva}/connection                │    │
-│  │  • Queries: AppSync for latest measurements                     │    │
-│  │  • Returns: Connection status (last 24h) + timestamp            │    │
+│  │ UVALastConnection (Endpoint API)                                 │    │
+│  │  • Disparador: API Gateway GET /{id_uva}/connection             │    │
+│  │  • Consulta: AppSync para las últimas mediciones                │    │
+│  │  • Devuelve: Estado de conexión (últimas 24h) + timestamp       │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                                                                           │
 │  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ CreateRacimo (API Endpoint)                                      │    │
-│  │  • Trigger: API Gateway POST /CreateRacimo                      │    │
-│  │  • Validates: RACIMO existence via GraphQL query                │    │
-│  │  • Creates: New RACIMO with linkage code                        │    │
-│  │  • Auth: AWS SigV4 signing                                      │    │
+│  │ CreateRacimo (Endpoint API)                                      │    │
+│  │  • Disparador: API Gateway POST /CreateRacimo                   │    │
+│  │  • Valida: Existencia de RACIMO vía consulta GraphQL            │    │
+│  │  • Crea: Nuevo RACIMO con código de vinculación                 │    │
+│  │  • Auth: Firma AWS SigV4                                        │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 └────────┬──────────────────────────────┬──────────────────────────────────┘
          │                              │
          ▼                              ▼
 ┌─────────────────┐          ┌──────────────────────┐
 │   Amazon SNS    │          │   AWS AppSync        │
-│                 │          │   (GraphQL APIs)     │
+│                 │          │   (APIs GraphQL)     │
 │ RealTimeDevice  │          │  ┌────────────────┐  │
 │ Data Topic      │          │  │ UVA Service    │  │
 │                 │          │  │ (UserAPI)      │  │
@@ -72,75 +72,75 @@ UVA-App-Integrations implements an **event-driven serverless architecture** on A
                               └──────────────────────┘
 ```
 
-## Component Details
+## Detalles de los Componentes
 
-### 1. Data Storage Layer (DynamoDB)
+### 1. Capa de Almacenamiento de Datos (DynamoDB)
 
-**Purpose**: Persistent storage for device data, metadata, and organizational structures
+**Propósito**: Almacenamiento persistente de datos de dispositivos, metadatos y estructuras organizacionales
 
-**Tables**:
-- **Measurement**: Stores time-series sensor data from UVA devices
-- **UVA**: Device registry with metadata and configuration
-- **RACIMO**: Device clusters/groups with linkage codes
-- **Organization**: Organizational entities linked to device clusters
-- **Location**: Geographic coordinates for UVA devices
+**Tablas**:
+- **Measurement**: Almacena datos de sensores en series de tiempo de los dispositivos UVA
+- **UVA**: Registro de dispositivos con metadatos y configuración
+- **RACIMO**: Clústeres/grupos de dispositivos con códigos de vinculación
+- **Organization**: Entidades organizacionales vinculadas a clústeres de dispositivos
+- **Location**: Coordenadas geográficas de los dispositivos UVA
 
-**Stream Configuration**:
-- Enabled on: Measurement, UVA tables
-- Batch size: 10 records
-- Batching window: 10 seconds
-- Starting position: LATEST
+**Configuración de Streams**:
+- Habilitado en: Tablas Measurement y UVA
+- Tamaño de lote: 10 registros
+- Ventana de agrupamiento: 10 segundos
+- Posición inicial: LATEST
 
-### 2. Compute Layer (Lambda Functions)
+### 2. Capa de Cómputo (Funciones Lambda)
 
-**Execution Configuration**:
+**Configuración de Ejecución**:
 - Runtime: Python 3.9
-- Memory: 520 MB per function
-- Timeout: 600 seconds (10 minutes)
-- Architecture: x86_64
+- Memoria: 520 MB por función
+- Timeout: 600 segundos (10 minutos)
+- Arquitectura: x86_64
 
-**Functions**:
-1. **DynamoDBEventProcessorFunction**: Stream-triggered data processor
-2. **UvaToCloudFunction**: Stream-triggered device synchronization
-3. **UVALastConnection**: API Gateway-triggered connection monitor
-4. **CreateRacimo**: API Gateway-triggered cluster manager
+**Funciones**:
+1. **DynamoDBEventProcessorFunction**: Procesador de datos disparado por stream
+2. **UvaToCloudFunction**: Sincronización de dispositivos disparada por stream
+3. **UVALastConnection**: Monitor de conexión disparado por API Gateway
+4. **CreateRacimo**: Administrador de clústeres disparado por API Gateway
 
-### 3. API Layer
+### 3. Capa de API
 
 **API Gateway**:
-- **REST API** with AWS_IAM authorization
+- **REST API** con autorización AWS_IAM
 - Endpoints:
   - `GET /{id_uva}/connection` → UVALastConnection
   - `POST /CreateRacimo` → CreateRacimo
 
 **AppSync GraphQL**:
-- **UVA Service API**: Device and measurement queries/mutations
-- **MakeSensCloud API**: Device and location management
-- Authentication: API Key (primary), SigV4 (CreateRacimo)
+- **API de Servicio UVA**: Consultas y mutaciones de dispositivos y mediciones
+- **API de MakeSensCloud**: Gestión de dispositivos y ubicaciones
+- Autenticación: API Key (principal), SigV4 (CreateRacimo)
 
-### 4. Messaging Layer
+### 4. Capa de Mensajería
 
 **Amazon SNS**:
 - Topic: `RealTimeDeviceData-{env}`
-- Publisher: DynamoDBEventProcessorFunction
-- Message attributes: `typeDevice=UVA`, `typeData=RAW`
-- Purpose: Fan-out device data to multiple subscribers
+- Publicador: DynamoDBEventProcessorFunction
+- Atributos del mensaje: `typeDevice=UVA`, `typeData=RAW`
+- Propósito: Distribución en abanico de datos de dispositivos a múltiples suscriptores
 
-## Data Flow Diagrams
+## Diagramas de Flujo de Datos
 
-### Flow 1: Real-time Measurement Processing
+### Flujo 1: Procesamiento de Mediciones en Tiempo Real
 
 ```
-UVA Device → Measurement Table → DynamoDB Stream
+Dispositivo UVA → Tabla Measurement → DynamoDB Stream
                                         │
                                         ▼
                               ┌─────────────────────┐
                               │ Event Processor     │
                               │ Lambda              │
                               │                     │
-                              │ 1. Filter INSERT    │
-                              │ 2. Transform types  │
-                              │ 3. Format timestamp │
+                              │ 1. Filtrar INSERT   │
+                              │ 2. Transformar tipos│
+                              │ 3. Formatear ts     │
                               └─────────┬───────────┘
                                         │
                                         ▼
@@ -150,42 +150,42 @@ UVA Device → Measurement Table → DynamoDB Stream
                               └─────────────────────┘
                                         │
                                         ▼
-                              [ Downstream Consumers ]
+                              [ Consumidores Downstream ]
 ```
 
-**Steps**:
-1. UVA device writes measurement to DynamoDB
-2. DynamoDB Stream captures INSERT event
-3. Lambda receives batch of stream records
-4. Lambda filters INSERT events only
-5. Lambda transforms DynamoDB format to standard JSON
-6. Lambda converts ISO timestamps to Unix milliseconds
-7. Lambda publishes to SNS with message attributes
-8. SNS distributes to all subscribers
+**Pasos**:
+1. El dispositivo UVA escribe una medición en DynamoDB
+2. DynamoDB Stream captura el evento INSERT
+3. Lambda recibe el lote de registros del stream
+4. Lambda filtra solo los eventos INSERT
+5. Lambda transforma el formato DynamoDB a JSON estándar
+6. Lambda convierte los timestamps ISO a milisegundos Unix
+7. Lambda publica en SNS con atributos de mensaje
+8. SNS distribuye a todos los suscriptores
 
-### Flow 2: Device Synchronization to Cloud
+### Flujo 2: Sincronización de Dispositivos a la Nube
 
 ```
-New UVA Created → UVA Table → DynamoDB Stream
+Nuevo UVA Creado → Tabla UVA → DynamoDB Stream
                                     │
-                                    ▼ (INSERT event)
+                                    ▼ (evento INSERT)
                           ┌──────────────────────┐
                           │ UvaToCloudFunction   │
                           │                      │
-                          │ 1. Extract UVA ID    │
-                          │ 2. Get RACIMO ID     │
+                          │ 1. Extraer UVA ID    │
+                          │ 2. Obtener RACIMO ID │
                           └──────────┬───────────┘
                                      │
                                      ▼
                           ┌──────────────────────┐
-                          │ Query RACIMO Table   │
-                          │ Get LinkageCode      │
+                          │ Consultar Tabla RACIMO│
+                          │ Obtener LinkageCode   │
                           └──────────┬───────────┘
                                      │
                                      ▼
                           ┌──────────────────────┐
-                          │ Scan Organization    │
-                          │ Match linkage_code   │
+                          │ Escanear Organization │
+                          │ Coincidir linkage_code│
                           └──────────┬───────────┘
                                      │
                                      ▼
@@ -195,49 +195,49 @@ New UVA Created → UVA Table → DynamoDB Stream
                           └──────────────────────┘
 ```
 
-**Steps (INSERT)**:
-1. New UVA record created in DynamoDB
-2. Stream event triggers Lambda
-3. Lambda extracts UVA ID and RACIMO ID
-4. Lambda queries RACIMO table for LinkageCode
-5. Lambda scans Organization table to find matching organization
-6. Lambda calls AppSync createDevice mutation
-7. Device registered in MakeSensCloud
+**Pasos (INSERT)**:
+1. Se crea un nuevo registro UVA en DynamoDB
+2. El evento de stream dispara Lambda
+3. Lambda extrae el ID de UVA y el ID de RACIMO
+4. Lambda consulta la tabla RACIMO para obtener el LinkageCode
+5. Lambda escanea la tabla Organization para encontrar la organización correspondiente
+6. Lambda llama a la mutación createDevice de AppSync
+7. El dispositivo queda registrado en MakeSensCloud
 
-**Steps (MODIFY - Location Update)**:
-1. UVA record updated with latitude/longitude
-2. Stream event triggers Lambda
-3. Lambda extracts location data
-4. Lambda queries Location table for existing record
-5. If exists: calls updateLocation mutation
-6. If not exists: calls createLocation mutation
+**Pasos (MODIFY - Actualización de Ubicación)**:
+1. El registro UVA se actualiza con latitud/longitud
+2. El evento de stream dispara Lambda
+3. Lambda extrae los datos de ubicación
+4. Lambda consulta la tabla Location en busca de un registro existente
+5. Si existe: llama a la mutación updateLocation
+6. Si no existe: llama a la mutación createLocation
 
-### Flow 3: Connection Status Check
+### Flujo 3: Verificación del Estado de Conexión
 
 ```
-Client Request → API Gateway → UVALastConnection Lambda
+Solicitud del Cliente → API Gateway → UVALastConnection Lambda
                                         │
                                         ▼
                               ┌──────────────────────┐
                               │ AppSync GraphQL      │
-                              │ Query:               │
+                              │ Consulta:            │
                               │ measurementsByUvaID  │
                               │ (limit: 1, desc)     │
                               └─────────┬────────────┘
                                         │
                                         ▼
                               ┌──────────────────────┐
-                              │ Check timestamp:     │
-                              │ < 24 hours?          │
-                              │ Yes → connected=true │
+                              │ Verificar timestamp: │
+                              │ < 24 horas?          │
+                              │ Sí → connected=true  │
                               │ No → connected=false │
                               └─────────┬────────────┘
                                         │
                                         ▼
-                              Return JSON Response
+                              Devolver Respuesta JSON
 ```
 
-**Response Format**:
+**Formato de Respuesta**:
 ```json
 {
   "uva_123": {
@@ -247,152 +247,152 @@ Client Request → API Gateway → UVALastConnection Lambda
 }
 ```
 
-### Flow 4: RACIMO Creation
+### Flujo 4: Creación de RACIMO
 
 ```
 POST /CreateRacimo → API Gateway → CreateRacimo Lambda
   {name, linkageCode}               │
                                     ▼
                           ┌──────────────────────┐
-                          │ Query AppSync:       │
+                          │ Consultar AppSync:   │
                           │ listRACIMOS          │
-                          │ filter: linkageCode  │
+                          │ filtrar: linkageCode │
                           └──────────┬───────────┘
                                      │
                            ┌─────────┴─────────┐
                            │                   │
-                    Exists │                   │ Not Exists
+                    Existe │                   │ No Existe
                            ▼                   ▼
-                  Return existing    ┌──────────────────┐
-                  RACIMO data        │ Create RACIMO:   │
-                                     │ - name           │
+                  Devolver datos      ┌──────────────────┐
+                  del RACIMO          │ Crear RACIMO:    │
+                  existente           │ - name           │
                                      │ - linkageCode    │
                                      │ - configPath     │
                                      └────────┬─────────┘
                                               │
                                               ▼
-                                     Return new RACIMO ID
+                                     Devolver nuevo RACIMO ID
 ```
 
-## External Integrations
+## Integraciones Externas
 
-### 1. MakeSensCloud AppSync API
+### 1. API AppSync de MakeSensCloud
 
-**Endpoint**: Environment-specific GraphQL endpoint
-**Authentication**: API Key
-**Used By**: UvaToCloudFunction
+**Endpoint**: Endpoint GraphQL específico por entorno
+**Autenticación**: API Key
+**Utilizado por**: UvaToCloudFunction
 
-**Operations**:
+**Operaciones**:
 - `createDevice(organizationID, name, ...)`
 - `createLocation(id, latitude, longitude, ...)`
 - `updateLocation(id, latitude, longitude, ...)`
 
-**Purpose**: Centralized device and location management across MakeSens platform
+**Propósito**: Gestión centralizada de dispositivos y ubicaciones en la plataforma MakeSens
 
-### 2. UVA Service AppSync API
+### 2. API AppSync del Servicio UVA
 
-**Endpoint**: Environment-specific GraphQL endpoint
-**Authentication**: API Key (queries), SigV4 (mutations)
-**Used By**: UVALastConnection, CreateRacimo
+**Endpoint**: Endpoint GraphQL específico por entorno
+**Autenticación**: API Key (consultas), SigV4 (mutaciones)
+**Utilizado por**: UVALastConnection, CreateRacimo
 
-**Operations**:
-- `measurementsByUvaIDAndTs()`: Query latest measurements
-- `getUVA()`: Get UVA device details
-- `listRACIMOS()`: Query RACIMOs by linkage code
-- `createRACIMO()`: Create new device cluster
+**Operaciones**:
+- `measurementsByUvaIDAndTs()`: Consulta las últimas mediciones
+- `getUVA()`: Obtiene detalles del dispositivo UVA
+- `listRACIMOS()`: Consulta RACIMOs por código de vinculación
+- `createRACIMO()`: Crea un nuevo clúster de dispositivos
 
-**Purpose**: UVA-specific data access and device management
+**Propósito**: Acceso a datos específicos de UVA y gestión de dispositivos
 
-## Security Architecture
+## Arquitectura de Seguridad
 
-### Authentication & Authorization
+### Autenticación y Autorización
 
-**Lambda Execution Roles**:
-- DynamoDB Stream read permissions (specific stream ARNs)
-- SNS publish permissions (specific topic ARNs)
-- DynamoDB table access (GetItem, Scan on specific tables)
-- AppSync API access (GraphQL operations)
+**Roles de Ejecución de Lambda**:
+- Permisos de lectura del DynamoDB Stream (ARNs de stream específicos)
+- Permisos de publicación en SNS (ARNs de topic específicos)
+- Acceso a tablas DynamoDB (GetItem, Scan en tablas específicas)
+- Acceso a la API AppSync (operaciones GraphQL)
 
 **API Gateway**:
-- Authorization: AWS_IAM
-- Requires signed requests with AWS credentials
-- Prevents unauthorized access to endpoints
+- Autorización: AWS_IAM
+- Requiere solicitudes firmadas con credenciales AWS
+- Previene el acceso no autorizado a los endpoints
 
-**AppSync APIs**:
-- **API Key**: Used for most operations (development/testing)
-- **AWS SigV4**: Used by CreateRacimo for production-grade auth
-- API keys rotated per environment
+**APIs AppSync**:
+- **API Key**: Utilizada para la mayoría de las operaciones (desarrollo/pruebas)
+- **AWS SigV4**: Utilizada por CreateRacimo para autenticación de nivel productivo
+- Las API keys se rotan por entorno
 
-### Network Security
+### Seguridad de Red
 
-**VPC**: Not used (public Lambda execution)
-**Encryption**:
-- DynamoDB: Server-side encryption at rest
-- Data in transit: HTTPS/TLS for all API calls
+**VPC**: No utilizada (ejecución pública de Lambda)
+**Cifrado**:
+- DynamoDB: Cifrado en reposo del lado del servidor
+- Datos en tránsito: HTTPS/TLS para todas las llamadas API
 
-## Environment Separation
+## Separación de Entornos
 
-The system supports three isolated environments:
+El sistema soporta tres entornos aislados:
 
-| Environment | Branch   | Purpose                    |
-|-------------|----------|----------------------------|
-| develop     | develop  | Active development         |
-| test        | test     | Pre-production testing     |
-| main        | main     | Production                 |
+| Entorno | Rama     | Propósito                          |
+|---------|----------|------------------------------------|
+| develop | develop  | Desarrollo activo                  |
+| test    | test     | Pruebas de pre-producción          |
+| main    | main     | Producción                         |
 
-**Isolation Strategy**:
-- Separate DynamoDB tables per environment
-- Separate AppSync endpoints per environment
-- Separate SNS topics per environment
-- Environment-specific API keys
-- Distinct parameter configurations in `parameters.json`
+**Estrategia de Aislamiento**:
+- Tablas DynamoDB separadas por entorno
+- Endpoints AppSync separados por entorno
+- Topics SNS separados por entorno
+- API keys específicas por entorno
+- Configuraciones de parámetros distintas en `parameters.json`
 
-## Scalability Considerations
+## Consideraciones de Escalabilidad
 
 **Lambda**:
-- Auto-scales based on event volume
-- Max concurrency: AWS account limits (default 1000)
-- Stream batch processing: 10 records per invocation
+- Escala automáticamente según el volumen de eventos
+- Concurrencia máxima: Límites de cuenta AWS (por defecto 1000)
+- Procesamiento en lotes del stream: 10 registros por invocación
 
 **DynamoDB**:
-- On-demand billing or provisioned capacity
-- Streams: Auto-scales with table throughput
+- Facturación bajo demanda o capacidad provisionada
+- Streams: Escala automáticamente con el throughput de la tabla
 
 **SNS**:
-- Highly scalable message distribution
-- Supports millions of messages per second
+- Distribución de mensajes altamente escalable
+- Soporta millones de mensajes por segundo
 
-## Monitoring & Observability
+## Monitoreo y Observabilidad
 
-**CloudWatch Logs**:
-- Lambda function logs (automatic)
-- Log retention: Configurable via CloudFormation
+**Logs de CloudWatch**:
+- Logs de funciones Lambda (automático)
+- Retención de logs: Configurable vía CloudFormation
 
-**CloudWatch Metrics**:
-- Lambda invocations, errors, duration
-- DynamoDB Stream iterator age
-- SNS message delivery metrics
+**Métricas de CloudWatch**:
+- Invocaciones, errores y duración de Lambda
+- Antigüedad del iterador del DynamoDB Stream
+- Métricas de entrega de mensajes SNS
 
-**Tracing**: Not currently implemented (consider AWS X-Ray for distributed tracing)
+**Trazabilidad**: No implementada actualmente (considerar AWS X-Ray para trazabilidad distribuida)
 
-## Deployment Architecture
+## Arquitectura de Despliegue
 
-**CI/CD Pipeline**:
+**Pipeline CI/CD**:
 ```
-GitHub Push → GitHub Actions → AWS SAM Deploy → CloudFormation Stack Update
+GitHub Push → GitHub Actions → AWS SAM Deploy → Actualización del Stack CloudFormation
     │
-    ├─ test branch   → Deploy to test environment
-    └─ main branch   → Deploy to production environment
+    ├─ rama test   → Despliegue en entorno test
+    └─ rama main   → Despliegue en producción
 ```
 
-**Deployment Process**:
-1. Code pushed to GitHub branch
-2. GitHub Actions workflow triggered
-3. SAM CLI builds Lambda packages
-4. CloudFormation validates template
-5. Stack deployed with environment-specific parameters
-6. Lambda functions updated with new code
-7. API Gateway endpoints configured
-8. DynamoDB Stream event mappings created
+**Proceso de Despliegue**:
+1. Código publicado en la rama de GitHub
+2. Se dispara el flujo de trabajo de GitHub Actions
+3. SAM CLI compila los paquetes Lambda
+4. CloudFormation valida la plantilla
+5. Se despliega el stack con parámetros específicos del entorno
+6. Las funciones Lambda se actualizan con el nuevo código
+7. Se configuran los endpoints de API Gateway
+8. Se crean los mapeos de eventos del DynamoDB Stream
 
-**Rollback Strategy**: CloudFormation automatic rollback on deployment failure
+**Estrategia de Rollback**: Rollback automático de CloudFormation en caso de fallo en el despliegue

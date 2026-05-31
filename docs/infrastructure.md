@@ -1,23 +1,23 @@
-# Infrastructure
+# Infraestructura
 
-## Overview
+## Descripción General
 
-UVA-App-Integrations is deployed using **AWS Serverless Application Model (SAM)**, which provides infrastructure as code using CloudFormation templates. The infrastructure is fully serverless, requiring no server management and scaling automatically based on demand.
+UVA-App-Integrations se despliega usando **AWS Serverless Application Model (SAM)**, que provee infraestructura como código mediante plantillas de CloudFormation. La infraestructura es completamente serverless, no requiere gestión de servidores y escala automáticamente según la demanda.
 
-**Infrastructure as Code**: AWS SAM (CloudFormation-based)
-**Cloud Provider**: Amazon Web Services (AWS)
-**Region**: us-east-1 (N. Virginia)
-**Account ID**: 913045965320
+**Infraestructura como Código**: AWS SAM (basado en CloudFormation)
+**Proveedor Cloud**: Amazon Web Services (AWS)
+**Región**: us-east-1 (N. Virginia)
+**ID de Cuenta**: 913045965320
 
 ---
 
-## Infrastructure Components
+## Componentes de Infraestructura
 
 ### 1. AWS Lambda
 
-**Service**: AWS Lambda (Serverless Compute)
+**Servicio**: AWS Lambda (Cómputo Serverless)
 
-**Functions Deployed**:
+**Funciones Desplegadas**:
 ```yaml
 Functions:
   - DynamoDBEventProcessorFunction
@@ -26,33 +26,33 @@ Functions:
   - CreateRacimo
 ```
 
-**Global Configuration** (from SAM template):
+**Configuración Global** (desde la plantilla SAM):
 ```yaml
 Globals:
   Function:
     Runtime: python3.9
     MemorySize: 520          # MB
-    Timeout: 600             # Seconds (10 minutes)
+    Timeout: 600             # Segundos (10 minutos)
     Architectures:
       - x86_64
 ```
 
-**Resource Naming**:
-- Pattern: `{FunctionName}-{StackName}-{UniqueId}`
-- Example: `DynamoDBEventProcessorFunction-SAM-UVA-App-Integrations-dev-abc123`
+**Nomenclatura de Recursos**:
+- Patrón: `{FunctionName}-{StackName}-{UniqueId}`
+- Ejemplo: `DynamoDBEventProcessorFunction-SAM-UVA-App-Integrations-dev-abc123`
 
-**Execution Roles**:
-- Auto-created by SAM for each function
-- Follows least-privilege principle
-- Grants specific permissions via Policies section in template
+**Roles de Ejecución**:
+- Creados automáticamente por SAM para cada función
+- Sigue el principio de mínimo privilegio
+- Otorga permisos específicos mediante la sección Policies en la plantilla
 
 ---
 
 ### 2. Amazon DynamoDB
 
-**Service**: Amazon DynamoDB (NoSQL Database)
+**Servicio**: Amazon DynamoDB (Base de Datos NoSQL)
 
-**Tables** (not managed by this stack - external dependencies):
+**Tablas** (no administradas por este stack - dependencias externas):
 ```
 Measurement-{AppId}-{env}
 UVA-{AppId}-{env}
@@ -61,14 +61,14 @@ Organization-{AppId}-{env}
 Location-{AppId}-{env}
 ```
 
-**Stream Configuration**:
-- **Measurement Stream**: Triggers DynamoDBEventProcessorFunction
-- **UVA Stream**: Triggers UvaToCloudFunction
-- **Batch Size**: 10 records
-- **Batching Window**: 10 seconds
-- **Starting Position**: LATEST
+**Configuración de Streams**:
+- **Stream de Measurement**: Dispara DynamoDBEventProcessorFunction
+- **Stream de UVA**: Dispara UvaToCloudFunction
+- **Tamaño de Lote**: 10 registros
+- **Ventana de Agrupamiento**: 10 segundos
+- **Posición Inicial**: LATEST
 
-**ARN Examples**:
+**Ejemplos de ARN**:
 ```
 arn:aws:dynamodb:us-east-1:913045965320:table/Measurement-abc123-develop/stream/*
 arn:aws:dynamodb:us-east-1:913045965320:table/UVA-abc123-develop/stream/*
@@ -78,22 +78,22 @@ arn:aws:dynamodb:us-east-1:913045965320:table/UVA-abc123-develop/stream/*
 
 ### 3. Amazon SNS
 
-**Service**: Amazon SNS (Simple Notification Service)
+**Servicio**: Amazon SNS (Simple Notification Service)
 
-**Topic** (external dependency):
-- **Name**: `RealTimeDeviceData-{env}`
-- **Purpose**: Distribute processed measurement data
-- **Publisher**: DynamoDBEventProcessorFunction
-- **Subscribers**: External (not managed by this stack)
+**Topic** (dependencia externa):
+- **Nombre**: `RealTimeDeviceData-{env}`
+- **Propósito**: Distribuir datos de mediciones procesados
+- **Publicador**: DynamoDBEventProcessorFunction
+- **Suscriptores**: Externos (no administrados por este stack)
 
-**ARN Pattern**:
+**Patrón ARN**:
 ```
 arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop
 arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-test
 arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-main
 ```
 
-**Message Attributes**:
+**Atributos del Mensaje**:
 - `typeDevice`: "UVA"
 - `typeData`: "RAW"
 
@@ -101,40 +101,40 @@ arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-main
 
 ### 4. AWS AppSync
 
-**Service**: AWS AppSync (GraphQL API)
+**Servicio**: AWS AppSync (API GraphQL)
 
-**APIs** (external dependencies - not managed by this stack):
+**APIs** (dependencias externas - no administradas por este stack):
 
-**MakeSensCloud AppSync**:
+**AppSync de MakeSensCloud**:
 ```yaml
-Purpose: Device and location management
+Propósito: Gestión de dispositivos y ubicaciones
 Endpoint: https://{api-id}.appsync-api.us-east-1.amazonaws.com/graphql
-Authentication: API Key
-Operations:
-  - Mutation: createDevice
-  - Mutation: createLocation
-  - Mutation: updateLocation
+Autenticación: API Key
+Operaciones:
+  - Mutación: createDevice
+  - Mutación: createLocation
+  - Mutación: updateLocation
 ```
 
-**UVA Service AppSync**:
+**AppSync del Servicio UVA**:
 ```yaml
-Purpose: Measurement queries and RACIMO management
+Propósito: Consultas de mediciones y gestión de RACIMO
 Endpoint: https://{api-id}.appsync-api.us-east-1.amazonaws.com/graphql
-Authentication: API Key (queries) / SigV4 (mutations)
-Operations:
-  - Query: measurementsByUvaIDAndTs
-  - Query: getUVA
-  - Query: listRACIMOS
-  - Mutation: createRACIMO
+Autenticación: API Key (consultas) / SigV4 (mutaciones)
+Operaciones:
+  - Consulta: measurementsByUvaIDAndTs
+  - Consulta: getUVA
+  - Consulta: listRACIMOS
+  - Mutación: createRACIMO
 ```
 
 ---
 
 ### 5. API Gateway
 
-**Service**: Amazon API Gateway (REST API)
+**Servicio**: Amazon API Gateway (REST API)
 
-**API Configuration**:
+**Configuración de la API**:
 ```yaml
 Type: AWS::Serverless::Api
 Name: UvaAppIntegrationsAPI-{env}
@@ -144,29 +144,29 @@ Authorization: AWS_IAM
 
 **Endpoints**:
 ```
-GET  /{id_uva}/connection   → UVALastConnection Lambda
-POST /CreateRacimo          → CreateRacimo Lambda
+GET  /{id_uva}/connection   → Lambda UVALastConnection
+POST /CreateRacimo          → Lambda CreateRacimo
 ```
 
-**Base URL Pattern**:
+**Patrón de URL Base**:
 ```
 https://{api-id}.execute-api.us-east-1.amazonaws.com/prod
 ```
 
-**CORS**: Not configured (can be added if needed)
+**CORS**: No configurado (se puede agregar si es necesario)
 
 **Throttling**:
-- Default AWS account limits
-- Rate limit: 10,000 requests per second
-- Burst limit: 5,000 requests
+- Se aplican los límites predeterminados de la cuenta AWS
+- Límite de tasa: 10,000 solicitudes por segundo
+- Límite de burst: 5,000 solicitudes
 
 ---
 
 ### 6. CloudWatch Logs
 
-**Service**: Amazon CloudWatch Logs
+**Servicio**: Amazon CloudWatch Logs
 
-**Log Groups** (auto-created):
+**Grupos de Logs** (creados automáticamente):
 ```
 /aws/lambda/DynamoDBEventProcessorFunction
 /aws/lambda/UvaToCloudFunction
@@ -174,82 +174,82 @@ https://{api-id}.execute-api.us-east-1.amazonaws.com/prod
 /aws/lambda/CreateRacimo
 ```
 
-**Retention**: Default (never expire) - should configure retention policy
+**Retención**: Por defecto (nunca expiran) - se debe configurar una política de retención
 
-**Log Format**: JSON structured logs from Lambda functions
+**Formato de Logs**: Logs estructurados en JSON desde las funciones Lambda
 
-**Recommended Retention**:
+**Retención Recomendada**:
 ```yaml
 LogGroup:
   Type: AWS::Logs::LogGroup
   Properties:
     LogGroupName: !Sub "/aws/lambda/${FunctionName}"
-    RetentionInDays: 7  # or 14, 30, 60, 90
+    RetentionInDays: 7  # o 14, 30, 60, 90
 ```
 
 ---
 
-## SAM Template Structure
+## Estructura de la Plantilla SAM
 
-**Location**: `SAM-UVA-App-Integrations/template.yaml`
+**Ubicación**: `SAM-UVA-App-Integrations/template.yaml`
 
-### Template Sections
+### Secciones de la Plantilla
 
 **Transform**:
 ```yaml
 Transform: AWS::Serverless-2016-10-31
 ```
-Enables SAM-specific syntax
+Habilita la sintaxis específica de SAM
 
-**Parameters** (Environment-specific values):
+**Parámetros** (valores específicos por entorno):
 ```yaml
 Parameters:
-  # DynamoDB Stream ARNs
+  # ARNs del DynamoDB Stream
   StreamArnDataAccess:
     Type: String
-    Description: Measurement table stream ARN
+    Description: ARN del stream de la tabla Measurement
 
   StreamArnCloud:
     Type: String
-    Description: UVA table stream ARN
+    Description: ARN del stream de la tabla UVA
 
-  # SNS Topic
+  # Topic SNS
   TopicSNSDataArn:
     Type: String
-    Description: RealTime device data topic ARN
+    Description: ARN del topic de datos de dispositivos en tiempo real
 
-  # AppSync Configuration
+  # Configuración AppSync
   UvaAppsyncUrl:
     Type: String
-    Description: UVA service AppSync endpoint
+    Description: Endpoint AppSync del servicio UVA
 
   UvaAppsyncApiKey:
     Type: String
-    Description: UVA service API key
+    Description: API key del servicio UVA
 
   CloudAppsyncUrl:
     Type: String
-    Description: Cloud service AppSync endpoint
+    Description: Endpoint AppSync del servicio Cloud
 
   CloudAppsyncApiKey:
     Type: String
-    Description: Cloud service API key
+    Description: API key del servicio Cloud
 
-  # DynamoDB Tables
+  # Tablas DynamoDB
   RacimoTableName:
     Type: String
-    Description: RACIMO table name
+    Description: Nombre de la tabla RACIMO
 
   OrganizationTableName:
     Type: String
-    Description: Organization table name
+    Description: Nombre de la tabla Organization
 
   LocationTableName:
     Type: String
-    Description: Location table name
+    Description: Nombre de la tabla Location
 ```
 
-**Functions** (Simplified example):
+**Funciones** (ejemplo simplificado):
 ```yaml
 Resources:
   DynamoDBEventProcessorFunction:
@@ -280,23 +280,23 @@ Resources:
 ```yaml
 Outputs:
   ApiEndpoint:
-    Description: API Gateway endpoint URL
+    Description: URL del endpoint de API Gateway
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
 
   DynamoDBProcessorArn:
-    Description: DynamoDB Event Processor Lambda ARN
+    Description: ARN de la Lambda DynamoDB Event Processor
     Value: !GetAtt DynamoDBEventProcessorFunction.Arn
 ```
 
 ---
 
-## Environment Configuration
+## Configuración de Entornos
 
-### Parameters File
+### Archivo de Parámetros
 
-**Location**: `SAM-UVA-App-Integrations/parameters.json`
+**Ubicación**: `SAM-UVA-App-Integrations/parameters.json`
 
-**Structure**:
+**Estructura**:
 ```json
 {
   "develop": {
@@ -311,35 +311,35 @@ Outputs:
     "OrganizationTableName": "Organization-abc123-develop",
     "LocationTableName": "Location-abc123-develop"
   },
-  "test": { /* same structure */ },
-  "main": { /* same structure */ }
+  "test": { /* misma estructura */ },
+  "main": { /* misma estructura */ }
 }
 ```
 
-### Environment Mapping
+### Mapeo de Entornos
 
-| Git Branch | Environment | Purpose |
-|------------|-------------|---------|
-| develop    | develop     | Development and feature testing |
-| test       | test        | Pre-production validation |
-| main       | main        | Production |
+| Rama Git | Entorno | Propósito |
+|----------|---------|-----------|
+| develop  | develop | Desarrollo y pruebas de funcionalidades |
+| test     | test    | Validación de pre-producción |
+| main     | main    | Producción |
 
-**Deployment Behavior**:
-- Branch name detected in `deploy.sh` script
-- Corresponding parameters loaded from JSON
-- SAM deploys with environment-specific resources
+**Comportamiento del Despliegue**:
+- El nombre de la rama se detecta en el script `deploy.sh`
+- Los parámetros correspondientes se cargan desde el JSON
+- SAM despliega con los recursos específicos del entorno
 
 ---
 
-## IAM Roles and Permissions
+## Roles y Permisos IAM
 
-### Lambda Execution Roles
+### Roles de Ejecución de Lambda
 
-**Auto-generated by SAM** for each function with specific policies.
+**Generados automáticamente por SAM** para cada función con políticas específicas.
 
-#### DynamoDBEventProcessorFunction Role
+#### Rol de DynamoDBEventProcessorFunction
 
-**Permissions**:
+**Permisos**:
 ```json
 {
   "Version": "2012-10-17",
@@ -372,9 +372,9 @@ Outputs:
 }
 ```
 
-#### UvaToCloudFunction Role
+#### Rol de UvaToCloudFunction
 
-**Permissions**:
+**Permisos**:
 ```json
 {
   "Statement": [
@@ -400,11 +400,11 @@ Outputs:
 }
 ```
 
-Note: AppSync access via API Key, not IAM
+Nota: El acceso a AppSync se realiza vía API Key, no IAM
 
-#### UVALastConnection Role
+#### Rol de UVALastConnection
 
-**Permissions**:
+**Permisos**:
 ```json
 {
   "Statement": [
@@ -417,11 +417,11 @@ Note: AppSync access via API Key, not IAM
 }
 ```
 
-Note: AppSync access via API Key
+Nota: El acceso a AppSync se controla vía API Key
 
-#### CreateRacimo Role
+#### Rol de CreateRacimo
 
-**Permissions**:
+**Permisos**:
 ```json
 {
   "Statement": [
@@ -442,11 +442,11 @@ Note: AppSync access via API Key
 }
 ```
 
-Uses SigV4 signing for AppSync authentication
+Utiliza firma SigV4 para la autenticación en AppSync
 
-### API Gateway Execution Role
+### Rol de Ejecución de API Gateway
 
-**Auto-generated** with permissions to invoke Lambda functions:
+**Generado automáticamente** con permisos para invocar funciones Lambda:
 ```json
 {
   "Statement": [
@@ -464,35 +464,35 @@ Uses SigV4 signing for AppSync authentication
 
 ---
 
-## Deployment Process
+## Proceso de Despliegue
 
-### Automated Deployment (CI/CD)
+### Despliegue Automatizado (CI/CD)
 
 **Pipeline**: GitHub Actions
 
-**Workflows**:
-- `.github/workflows/DeployTest.yml` - Deploy to test environment
-- `.github/workflows/DeployMain.yml` - Deploy to production
+**Flujos de Trabajo**:
+- `.github/workflows/DeployTest.yml` - Despliega en el entorno test
+- `.github/workflows/DeployMain.yml` - Despliega en producción
 
-**Trigger**: Pull request closed (merged) to `test` or `main` branch
+**Disparador**: Pull request cerrada (mergeada) en la rama `test` o `main`
 
-**Steps**:
-1. Checkout code
-2. Configure AWS credentials (from GitHub Secrets)
-3. Install Python 3.9 (via pyenv)
-4. Install jq (JSON processor)
-5. Install AWS SAM CLI
-6. Execute `deploy.sh` script
+**Pasos**:
+1. Checkout del código
+2. Configurar credenciales AWS (desde GitHub Secrets)
+3. Instalar Python 3.9 (vía pyenv)
+4. Instalar jq (procesador JSON)
+5. Instalar AWS SAM CLI
+6. Ejecutar el script `deploy.sh`
 
-### Deployment Script
+### Script de Despliegue
 
-**Location**: `SAM-UVA-App-Integrations/deploy.sh`
+**Ubicación**: `SAM-UVA-App-Integrations/deploy.sh`
 
-**Process**:
+**Proceso**:
 ```bash
 #!/bin/bash
 
-# 1. Detect environment from git branch
+# 1. Detectar entorno desde la rama git
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 if [[ $BRANCH == "develop" ]]; then
@@ -506,16 +506,16 @@ else
   exit 1
 fi
 
-# 2. Load parameters from JSON
+# 2. Cargar parámetros desde JSON
 PARAMS=$(jq -r ".${ENV}" parameters.json)
 
-# 3. Validate SAM template
+# 3. Validar la plantilla SAM
 sam validate --template template.yaml
 
-# 4. Build Lambda packages
+# 4. Compilar los paquetes Lambda
 sam build --template template.yaml
 
-# 5. Deploy CloudFormation stack
+# 5. Desplegar el stack de CloudFormation
 sam deploy \
   --template-file .aws-sam/build/template.yaml \
   --stack-name "SAM-UVA-App-Integrations-${ENV}" \
@@ -524,21 +524,21 @@ sam deploy \
   --parameter-overrides $(echo $PARAMS | jq -r 'to_entries | map("\(.key)=\(.value)") | join(" ")')
 ```
 
-**Stack Name Pattern**:
+**Patrón de Nombre del Stack**:
 - develop: `SAM-UVA-App-Integrations-develop`
 - test: `SAM-UVA-App-Integrations-test`
 - main: `SAM-UVA-App-Integrations-main`
 
-### Manual Deployment
+### Despliegue Manual
 
 ```bash
-# Navigate to SAM directory
+# Navegar al directorio SAM
 cd SAM-UVA-App-Integrations
 
-# Build
+# Compilar
 sam build
 
-# Deploy to specific environment
+# Desplegar en un entorno específico
 sam deploy \
   --config-env develop \
   --stack-name SAM-UVA-App-Integrations-develop \
@@ -548,9 +548,9 @@ sam deploy \
 
 ---
 
-## Resource Tagging
+## Etiquetado de Recursos
 
-**Recommended Tags** (add to SAM template):
+**Etiquetas Recomendadas** (agregar a la plantilla SAM):
 ```yaml
 Tags:
   Project: UVA-App-Integrations
@@ -560,66 +560,66 @@ Tags:
   Owner: MakeSens-DevTeam
 ```
 
-**Benefits**:
-- Cost allocation by environment
-- Resource organization
-- Access control via tag-based policies
+**Beneficios**:
+- Asignación de costos por entorno
+- Organización de recursos
+- Control de acceso mediante políticas basadas en etiquetas
 
 ---
 
-## Cost Estimation
+## Estimación de Costos
 
-### Monthly Cost Breakdown (Approximate)
+### Desglose de Costos Mensuales (Aproximado)
 
 **AWS Lambda**:
-- **Requests**: 10M requests/month
-- **Duration**: 500ms average, 520MB memory
-- **Cost**: ~$20-30/month
+- **Solicitudes**: 10M solicitudes/mes
+- **Duración**: 500ms promedio, 520MB de memoria
+- **Costo**: ~$20-30/mes
 
 **DynamoDB Streams**:
-- **Read requests**: Included with DynamoDB
-- **Cost**: $0 (covered by DynamoDB charges)
+- **Solicitudes de lectura**: Incluidas con DynamoDB
+- **Costo**: $0 (cubierto por los cargos de DynamoDB)
 
 **API Gateway**:
-- **Requests**: 1M API calls/month
-- **Cost**: ~$3.50/month
+- **Solicitudes**: 1M llamadas API/mes
+- **Costo**: ~$3.50/mes
 
 **CloudWatch Logs**:
-- **Ingestion**: 10GB/month
-- **Storage**: 50GB (no retention policy)
-- **Cost**: ~$5-10/month
+- **Ingesta**: 10GB/mes
+- **Almacenamiento**: 50GB (sin política de retención)
+- **Costo**: ~$5-10/mes
 
-**Data Transfer**:
-- **SNS**: 1M messages/month
-- **AppSync**: 1M queries/month
-- **Cost**: ~$5-15/month
+**Transferencia de Datos**:
+- **SNS**: 1M mensajes/mes
+- **AppSync**: 1M consultas/mes
+- **Costo**: ~$5-15/mes
 
-**Total Estimated Monthly Cost**: $35-60 (excluding DynamoDB and AppSync - managed externally)
+**Costo Mensual Total Estimado**: $35-60 (excluyendo DynamoDB y AppSync - administrados externamente)
 
-### Cost Optimization
+### Optimización de Costos
 
-1. **Implement CloudWatch Logs retention** (7-30 days)
-   - Reduces storage costs by 70-90%
+1. **Implementar retención de CloudWatch Logs** (7-30 días)
+   - Reduce los costos de almacenamiento entre un 70-90%
 
-2. **Right-size Lambda memory**
-   - Current: 520 MB
-   - Test with 256 MB or 384 MB for potential savings
+2. **Ajustar la memoria de Lambda**
+   - Actual: 520 MB
+   - Probar con 256 MB o 384 MB para posibles ahorros
 
-3. **Use Lambda reserved concurrency**
-   - Prevents throttling
-   - No additional cost
+3. **Usar concurrencia reservada de Lambda**
+   - Previene el throttling
+   - Sin costo adicional
 
-4. **Enable API Gateway caching**
-   - Reduce Lambda invocations
-   - Cache connection status for 60 seconds
+4. **Habilitar caché en API Gateway**
+   - Reduce las invocaciones de Lambda
+   - Cachear el estado de conexión por 60 segundos
 
 ---
 
-## Monitoring and Alarms
+## Monitoreo y Alarmas
 
-### CloudWatch Alarms
+### Alarmas de CloudWatch
 
-**Lambda Function Errors**:
+**Errores en Funciones Lambda**:
 ```yaml
 FunctionErrorAlarm:
   Type: AWS::CloudWatch::Alarm
@@ -637,7 +637,7 @@ FunctionErrorAlarm:
         Value: !Ref FunctionName
 ```
 
-**DynamoDB Stream Lag**:
+**Retraso en DynamoDB Stream**:
 ```yaml
 StreamLagAlarm:
   Type: AWS::CloudWatch::Alarm
@@ -647,11 +647,11 @@ StreamLagAlarm:
     Namespace: AWS/DynamoDB
     Statistic: Maximum
     Period: 300
-    Threshold: 600000  # 10 minutes
+    Threshold: 600000  # 10 minutos
     ComparisonOperator: GreaterThanThreshold
 ```
 
-**API Gateway 5xx Errors**:
+**Errores 5xx en API Gateway**:
 ```yaml
 ApiErrorAlarm:
   Type: AWS::CloudWatch::Alarm
@@ -667,7 +667,7 @@ ApiErrorAlarm:
 
 ### Dashboards
 
-**Recommended CloudWatch Dashboard** (JSON):
+**Dashboard de CloudWatch Recomendado** (JSON):
 ```json
 {
   "widgets": [
@@ -681,7 +681,7 @@ ApiErrorAlarm:
         ],
         "period": 300,
         "region": "us-east-1",
-        "title": "Lambda Metrics"
+        "title": "Métricas de Lambda"
       }
     }
   ]
@@ -690,46 +690,46 @@ ApiErrorAlarm:
 
 ---
 
-## Security Considerations
+## Consideraciones de Seguridad
 
-### Network Security
+### Seguridad de Red
 
-**VPC**: Not configured (Lambda runs in AWS-managed VPC)
-**Recommendation**: Consider VPC deployment if accessing private resources
+**VPC**: No configurada (Lambda ejecuta en VPC administrada por AWS)
+**Recomendación**: Considerar despliegue en VPC si se accede a recursos privados
 
 **Endpoints**:
-- All Lambda → DynamoDB: HTTPS
-- All Lambda → AppSync: HTTPS
-- All Lambda → SNS: HTTPS
-- API Gateway: HTTPS only
+- Todas las Lambda → DynamoDB: HTTPS
+- Todas las Lambda → AppSync: HTTPS
+- Todas las Lambda → SNS: HTTPS
+- API Gateway: Solo HTTPS
 
-### Secrets Management
+### Gestión de Secretos
 
-**Current State**: API keys stored in SAM parameters (plaintext in JSON)
+**Estado Actual**: Las API keys se almacenan en parámetros SAM (texto plano en JSON)
 
-**Recommendation**: Use AWS Secrets Manager
+**Recomendación**: Usar AWS Secrets Manager
 ```yaml
 Environment:
   Variables:
     APPSYNC_API_KEY: !Sub "{{resolve:secretsmanager:UVA-AppSync-Key:SecretString:api_key}}"
 ```
 
-**Benefits**:
-- Automatic rotation
-- Encryption at rest
-- Audit logging
-- No plaintext in version control
+**Beneficios**:
+- Rotación automática
+- Cifrado en reposo
+- Registro de auditoría
+- Sin texto plano en control de versiones
 
-### API Security
+### Seguridad de la API
 
 **API Gateway**:
-- Authorization: AWS_IAM (requires signed requests)
-- Prevents anonymous access
-- Integrates with AWS IAM users/roles
+- Autorización: AWS_IAM (requiere solicitudes firmadas)
+- Previene el acceso anónimo
+- Se integra con usuarios/roles de AWS IAM
 
-**Rate Limiting**:
-- Default AWS account limits apply
-- Recommendation: Configure per-key throttling
+**Limitación de Tasa**:
+- Se aplican los límites predeterminados de la cuenta AWS
+- Recomendación: Configurar throttling por clave
   ```yaml
   ApiGatewayUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
@@ -741,112 +741,112 @@ Environment:
 
 ---
 
-## Disaster Recovery
+## Recuperación ante Desastres
 
-### Backup Strategy
+### Estrategia de Respaldo
 
-**Lambda Functions**:
-- Code stored in Git (version controlled)
-- SAM template in Git (infrastructure as code)
-- No backup needed (can redeploy from source)
+**Funciones Lambda**:
+- Código almacenado en Git (versionado)
+- Plantilla SAM en Git (infraestructura como código)
+- No se requiere respaldo (se puede redesplegar desde el origen)
 
-**CloudFormation Stacks**:
-- Export stack templates periodically
-- Store in S3 versioned bucket
+**Stacks de CloudFormation**:
+- Exportar plantillas del stack periódicamente
+- Almacenar en bucket S3 con versionado
 
-**Configuration**:
-- `parameters.json` in Git
-- Secrets in AWS Secrets Manager (auto-backed up)
+**Configuración**:
+- `parameters.json` en Git
+- Secretos en AWS Secrets Manager (respaldados automáticamente)
 
-### Recovery Process
+### Proceso de Recuperación
 
-**Full Environment Rebuild**:
+**Reconstrucción Completa del Entorno**:
 ```bash
-# 1. Restore parameters.json from Git
+# 1. Restaurar parameters.json desde Git
 git checkout main
 
-# 2. Redeploy stack
+# 2. Redesplegar el stack
 cd SAM-UVA-App-Integrations
 ./deploy.sh
 
-# 3. Verify deployment
+# 3. Verificar el despliegue
 sam list stack-outputs --stack-name SAM-UVA-App-Integrations-main
 ```
 
-**RTO (Recovery Time Objective)**: < 30 minutes
-**RPO (Recovery Point Objective)**: < 1 hour (last Git commit)
+**RTO (Objetivo de Tiempo de Recuperación)**: < 30 minutos
+**RPO (Objetivo de Punto de Recuperación)**: < 1 hora (último commit en Git)
 
 ---
 
-## Scaling Considerations
+## Consideraciones de Escalabilidad
 
-### Lambda Auto-scaling
+### Auto-escalado de Lambda
 
-**Concurrency**:
-- Default: 1000 concurrent executions (AWS account limit)
-- Reserved concurrency: Not configured
-- Provisioned concurrency: Not configured (cold starts acceptable)
+**Concurrencia**:
+- Por defecto: 1000 ejecuciones concurrentes (límite de cuenta AWS)
+- Concurrencia reservada: No configurada
+- Concurrencia provisionada: No configurada (los arranques en frío son aceptables)
 
-**DynamoDB Stream Shards**:
-- Each shard: ~2000 records/second
-- Lambda concurrency = number of shards
-- Auto-scales with DynamoDB table
+**Shards de DynamoDB Stream**:
+- Cada shard: ~2000 registros/segundo
+- Concurrencia de Lambda = número de shards
+- Escala automáticamente con la tabla DynamoDB
 
-### API Gateway Scaling
+### Escalabilidad de API Gateway
 
-**Limits**:
-- Regional endpoint: 10,000 requests/second (default)
-- Burst capacity: 5,000 requests
-- Can request limit increase via AWS Support
+**Límites**:
+- Endpoint regional: 10,000 solicitudes/segundo (por defecto)
+- Capacidad de burst: 5,000 solicitudes
+- Se puede solicitar aumento del límite vía AWS Support
 
-### Bottlenecks
+### Cuellos de Botella
 
-**Current**:
-1. **Organization table Scan**: Full table scan for linkage code lookup
-   - Solution: Add GSI on `linkage_code`
+**Actuales**:
+1. **Scan de la tabla Organization**: Escaneo completo para búsqueda por código de vinculación
+   - Solución: Agregar GSI en `linkage_code`
 
-2. **AppSync API rate limits**: External dependency
-   - Solution: Implement exponential backoff and retry
+2. **Límites de tasa de la API AppSync**: Dependencia externa
+   - Solución: Implementar backoff exponencial y reintento
 
-3. **Lambda cold starts**: ~2-3 seconds
-   - Solution: Provisioned concurrency (if < 100ms latency required)
+3. **Arranques en frío de Lambda**: ~2-3 segundos
+   - Solución: Concurrencia provisionada (si se requiere latencia < 100ms)
 
 ---
 
-## Maintenance
+## Mantenimiento
 
-### Regular Tasks
+### Tareas Regulares
 
-**Weekly**:
-- Review CloudWatch Logs for errors
-- Check Lambda duration metrics (optimize if > 5 seconds)
+**Semanales**:
+- Revisar CloudWatch Logs en busca de errores
+- Verificar métricas de duración de Lambda (optimizar si > 5 segundos)
 
-**Monthly**:
-- Review CloudWatch costs (logs storage)
-- Update Lambda dependencies (boto3, requests)
-- Rotate API keys (if using)
+**Mensuales**:
+- Revisar costos de CloudWatch (almacenamiento de logs)
+- Actualizar dependencias de Lambda (boto3, requests)
+- Rotar API keys (si se utilizan)
 
-**Quarterly**:
-- Review IAM permissions (least privilege)
-- Update Python runtime version
-- Load test API endpoints
+**Trimestrales**:
+- Revisar permisos IAM (mínimo privilegio)
+- Actualizar la versión del runtime de Python
+- Pruebas de carga en los endpoints API
 
-### Updates and Patches
+### Actualizaciones y Parches
 
-**Lambda Runtime**:
-- Current: Python 3.9
-- Update process: Change `Runtime` in SAM template → redeploy
+**Runtime de Lambda**:
+- Actual: Python 3.9
+- Proceso de actualización: Cambiar `Runtime` en la plantilla SAM → redesplegar
 
-**Dependencies**:
+**Dependencias**:
 ```bash
-# Update requirements.txt
+# Actualizar requirements.txt
 pip install --upgrade boto3 requests
 
-# Test locally
+# Probar localmente
 sam build
 sam local invoke FunctionName -e events/test.json
 
-# Deploy
+# Desplegar
 sam deploy
 ```
 
@@ -857,57 +857,57 @@ pip install --upgrade aws-sam-cli
 
 ---
 
-## Troubleshooting
+## Resolución de Problemas
 
-### Common Issues
+### Problemas Comunes
 
-**Issue**: Lambda timeout (600s exceeded)
-**Solution**:
-- Check AppSync/DynamoDB latency
-- Review CloudWatch Logs for bottlenecks
-- Consider async processing for long operations
+**Problema**: Timeout de Lambda (se supera el límite de 600s)
+**Solución**:
+- Verificar la latencia de AppSync/DynamoDB
+- Revisar CloudWatch Logs en busca de cuellos de botella
+- Considerar procesamiento asíncrono para operaciones largas
 
-**Issue**: DynamoDB Stream iterator age increasing
-**Solution**:
-- Check Lambda errors (failing functions retry)
-- Increase Lambda concurrency
-- Review batch size (reduce from 10 to 5)
+**Problema**: Aumento de la antigüedad del iterador del DynamoDB Stream
+**Solución**:
+- Verificar errores de Lambda (las funciones con fallos reintentarán)
+- Aumentar la concurrencia de Lambda
+- Revisar el tamaño del lote (reducir de 10 a 5)
 
-**Issue**: API Gateway 403 Forbidden
-**Solution**:
-- Verify AWS credentials (IAM authorization)
-- Check API Gateway resource policy
-- Ensure request is signed with SigV4
+**Problema**: API Gateway 403 Forbidden
+**Solución**:
+- Verificar las credenciales AWS (autorización IAM)
+- Verificar la política de recursos de API Gateway
+- Asegurarse de que la solicitud esté firmada con SigV4
 
-### Debugging Commands
+### Comandos de Diagnóstico
 
 ```bash
-# View Lambda logs
+# Ver logs de Lambda
 sam logs -n DynamoDBEventProcessorFunction --tail
 
-# Invoke function locally
+# Invocar función localmente
 sam local invoke UVALastConnection -e events/api-event.json
 
-# Start local API
+# Iniciar API local
 sam local start-api
 
-# Validate template
+# Validar plantilla
 sam validate --lint
 
-# Check stack status
+# Verificar estado del stack
 aws cloudformation describe-stacks --stack-name SAM-UVA-App-Integrations-develop
 ```
 
 ---
 
-## References
+## Referencias
 
-**AWS Documentation**:
-- [AWS SAM Documentation](https://docs.aws.amazon.com/serverless-application-model/)
-- [Lambda Best Practices](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
+**Documentación de AWS**:
+- [Documentación de AWS SAM](https://docs.aws.amazon.com/serverless-application-model/)
+- [Mejores Prácticas de Lambda](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
 - [DynamoDB Streams](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html)
 
-**Internal Documentation**:
-- [Architecture](architecture.md)
-- [Lambda Functions](lambdas.md)
-- [Database Schema](database.md)
+**Documentación Interna**:
+- [Arquitectura](architecture.md)
+- [Funciones Lambda](lambdas.md)
+- [Esquema de Base de Datos](database.md)

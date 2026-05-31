@@ -1,84 +1,84 @@
 # UVA-App-Integrations
 
-## Project Description
+## Descripción del Proyecto
 
-UVA-App-Integrations is a serverless microservice that bridges the **UVA (Universal Vitals Application)** IoT device ecosystem with MakeSens cloud services. It solves the business problem of **real-time device data synchronization**, **connection monitoring**, and **organizational device management** across distributed sensor networks.
+UVA-App-Integrations es un microservicio serverless que conecta el ecosistema de dispositivos IoT **UVA (Universal Vitals Application)** con los servicios cloud de MakeSens. Resuelve el problema de negocio de la **sincronización de datos de dispositivos en tiempo real**, el **monitoreo de conexiones** y la **gestión de dispositivos organizacionales** en redes de sensores distribuidos.
 
-## Purpose
+## Propósito
 
-This repository provides the integration layer that:
-- Processes and distributes real-time measurement data from UVA devices
-- Synchronizes UVA devices with MakeSensCloud for centralized management
-- Monitors device connection status for maintenance and alerting
-- Manages RACIMO (device cluster) configurations for organizational hierarchy
+Este repositorio provee la capa de integración que:
+- Procesa y distribuye datos de mediciones en tiempo real desde dispositivos UVA
+- Sincroniza dispositivos UVA con MakeSensCloud para una gestión centralizada
+- Monitorea el estado de conexión de los dispositivos para mantenimiento y alertas
+- Gestiona las configuraciones de RACIMO (clúster de dispositivos) para la jerarquía organizacional
 
-## Main Functionalities
+## Funcionalidades Principales
 
-- **Real-time Data Processing**: Streams device measurements from DynamoDB to SNS for downstream consumers
-- **Device Synchronization**: Automatically creates and updates device records in MakeSensCloud when UVA devices are registered
-- **Location Management**: Tracks and updates geographic coordinates for UVA devices
-- **Connection Monitoring**: REST API endpoint to check if devices are active (connected within last 24 hours)
-- **RACIMO Management**: REST API for creating device clusters with linkage codes
-- **Multi-Environment Support**: Separate configurations for develop, test, and production environments
+- **Procesamiento de Datos en Tiempo Real**: Transmite mediciones de dispositivos desde DynamoDB a SNS para consumidores downstream
+- **Sincronización de Dispositivos**: Crea y actualiza automáticamente registros de dispositivos en MakeSensCloud cuando se registran dispositivos UVA
+- **Gestión de Ubicación**: Rastrea y actualiza coordenadas geográficas de dispositivos UVA
+- **Monitoreo de Conexión**: Endpoint REST API para verificar si los dispositivos están activos (conectados en las últimas 24 horas)
+- **Gestión de RACIMO**: REST API para crear clústeres de dispositivos con códigos de vinculación
+- **Soporte Multi-Entorno**: Configuraciones separadas para los entornos develop, test y production
 
-## Basic Commands
+## Comandos Básicos
 
-### Prerequisites
+### Prerrequisitos
 - Python 3.9
 - AWS SAM CLI
-- AWS credentials configured
-- jq (for JSON processing)
+- Credenciales de AWS configuradas
+- jq (para procesamiento de JSON)
 
-### Installation/Setup
+### Instalación/Configuración
 ```bash
-# Clone the repository
+# Clonar el repositorio
 git clone <repository-url>
 cd UVA-App-Integrations/SAM-UVA-App-Integrations
 
-# Install AWS SAM CLI (if not already installed)
+# Instalar AWS SAM CLI (si no está instalado)
 pip install aws-sam-cli
 
-# Install dependencies for local testing
+# Instalar dependencias para pruebas locales
 pip install boto3 requests
 ```
 
-### Deploy to AWS
+### Despliegue en AWS
 ```bash
-# Navigate to SAM directory
+# Navegar al directorio SAM
 cd SAM-UVA-App-Integrations
 
-# Deploy using automated script (detects branch for environment)
+# Desplegar usando el script automatizado (detecta la rama para el entorno)
 ./deploy.sh
 
-# Or deploy manually to specific environment
+# O desplegar manualmente en un entorno específico
 sam build
-sam deploy --config-env develop  # or test, main
+sam deploy --config-env develop  # o test, main
 ```
 
-### Local Testing
+### Pruebas Locales
 ```bash
-# Build the application
+# Compilar la aplicación
 sam build
 
-# Invoke a Lambda function locally
+# Invocar una función Lambda localmente
 sam local invoke DynamoDBEventProcessorFunction -e events/dynamodb-event.json
 
-# Start local API
+# Iniciar la API local
 sam local start-api
 ```
 
-### Run Tests
+### Ejecutar Pruebas
 ```bash
-# Navigate to lambda directory
+# Navegar al directorio de la lambda
 cd SAM-UVA-App-Integrations/lambdas/<function-name>
 
-# Run unit tests (when available)
+# Ejecutar pruebas unitarias (cuando estén disponibles)
 python -m pytest tests/
 ```
 
-## General Architecture
+## Arquitectura General
 
-### High-Level Components
+### Componentes de Alto Nivel
 
 ```
 ┌─────────────────┐
@@ -113,65 +113,65 @@ python -m pytest tests/
                     └─────────────────┘
 ```
 
-### Data Flow
-1. **Measurement Stream**: UVA devices write measurements to DynamoDB → Stream triggers Lambda → Publishes to SNS
-2. **Device Sync**: New UVA registered → Stream triggers Lambda → Creates device in MakeSensCloud via GraphQL
-3. **Connection Check**: API request → Lambda queries AppSync → Returns connection status
-4. **RACIMO Creation**: API request → Lambda checks/creates RACIMO → Returns cluster ID
+### Flujo de Datos
+1. **Stream de Mediciones**: Los dispositivos UVA escriben mediciones en DynamoDB → El stream dispara Lambda → Publica en SNS
+2. **Sincronización de Dispositivos**: Nuevo UVA registrado → El stream dispara Lambda → Crea el dispositivo en MakeSensCloud vía GraphQL
+3. **Verificación de Conexión**: Solicitud API → Lambda consulta AppSync → Devuelve el estado de conexión
+4. **Creación de RACIMO**: Solicitud API → Lambda verifica/crea RACIMO → Devuelve el ID del clúster
 
-## Main Technologies
+## Tecnologías Principales
 
-### Cloud Platform
-- **AWS Lambda**: Serverless compute for event processing
-- **AWS SAM**: Infrastructure as code and deployment
-- **Amazon DynamoDB**: NoSQL database with streams
-- **Amazon SNS**: Message publishing for real-time data
-- **AWS AppSync**: GraphQL API for data synchronization
-- **API Gateway**: REST API endpoints
-- **AWS IAM**: Authentication and authorization
+### Plataforma Cloud
+- **AWS Lambda**: Cómputo serverless para procesamiento de eventos
+- **AWS SAM**: Infraestructura como código y despliegue
+- **Amazon DynamoDB**: Base de datos NoSQL con streams
+- **Amazon SNS**: Publicación de mensajes para datos en tiempo real
+- **AWS AppSync**: API GraphQL para sincronización de datos
+- **API Gateway**: Endpoints REST API
+- **AWS IAM**: Autenticación y autorización
 
-### Development
-- **Python 3.9**: Primary programming language
-- **boto3**: AWS SDK for Python
-- **requests**: HTTP client for GraphQL operations
-- **GitHub Actions**: CI/CD automation
+### Desarrollo
+- **Python 3.9**: Lenguaje de programación principal
+- **boto3**: SDK de AWS para Python
+- **requests**: Cliente HTTP para operaciones GraphQL
+- **GitHub Actions**: Automatización CI/CD
 
 ### DevOps
-- **CloudFormation**: Infrastructure provisioning
-- **Bash**: Deployment automation
-- **jq**: JSON parameter processing
+- **CloudFormation**: Aprovisionamiento de infraestructura
+- **Bash**: Automatización de despliegues
+- **jq**: Procesamiento de parámetros JSON
 
-## Repository Structure
+## Estructura del Repositorio
 
 ```
 UVA-App-Integrations/
-├── .github/workflows/       # CI/CD pipelines for test and main environments
+├── .github/workflows/       # Pipelines CI/CD para entornos test y main
 ├── SAM-UVA-App-Integrations/
 │   ├── lambdas/
-│   │   ├── cloud/          # UVA to MakeSensCloud integration
-│   │   ├── createRacimo/   # RACIMO cluster management
-│   │   ├── deviceDataAccess/# Real-time data streaming
-│   │   └── uvaConnection/  # Connection status monitoring
-│   ├── deploy.sh           # Automated deployment script
-│   ├── parameters.json     # Environment-specific configuration
-│   └── template.yaml       # SAM CloudFormation template
-├── docs/                   # Detailed technical documentation
-└── README.md              # This file
+│   │   ├── cloud/          # Integración UVA con MakeSensCloud
+│   │   ├── createRacimo/   # Gestión de clústeres RACIMO
+│   │   ├── deviceDataAccess/# Streaming de datos en tiempo real
+│   │   └── uvaConnection/  # Monitoreo del estado de conexión
+│   ├── deploy.sh           # Script de despliegue automatizado
+│   ├── parameters.json     # Configuración específica por entorno
+│   └── template.yaml       # Plantilla SAM CloudFormation
+├── docs/                   # Documentación técnica detallada
+└── README.md              # Este archivo
 ```
 
-## Documentation
+## Documentación
 
-For detailed technical documentation, see the `/docs` folder:
-- [Architecture](docs/architecture.md) - System design and component diagrams
-- [Features](docs/features.md) - Detailed functionality descriptions
-- [Lambda Functions](docs/lambdas.md) - Lambda function specifications
-- [Database](docs/database.md) - DynamoDB schema and data model
-- [Infrastructure](docs/infrastructure.md) - AWS resources and configurations
+Para documentación técnica detallada, consulta la carpeta `/docs`:
+- [Arquitectura](docs/architecture.md) - Diseño del sistema y diagramas de componentes
+- [Funcionalidades](docs/features.md) - Descripciones detalladas de las funcionalidades
+- [Funciones Lambda](docs/lambdas.md) - Especificaciones de las funciones Lambda
+- [Base de Datos](docs/database.md) - Esquema DynamoDB y modelo de datos
+- [Infraestructura](docs/infrastructure.md) - Recursos y configuraciones de AWS
 
-## License
+## Licencia
 
-See [LICENSE.txt](LICENSE.txt) for details.
+Consulta [LICENSE.txt](LICENSE.txt) para más detalles.
 
-## Support
+## Soporte
 
-For issues or questions, please contact the MakeSens development team.
+Para problemas o preguntas, por favor contacta al equipo de desarrollo de MakeSens.
