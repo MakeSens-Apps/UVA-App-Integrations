@@ -1,8 +1,14 @@
-
-# Build & test artifacts (never commit)
-.aws-sam/
-.pytest_cache/
+# Python
 __pycache__/
-*.pyc
-.coverage
+*.py[cod]
+*.egg-info/
+.pytest_cache/
 htmlcov/
+.coverage
+
+# SAM build artifacts
+.aws-sam/
+
+# Generated sam-local --env-vars file for e2e (may contain AppSync API keys).
+# It is generated at test time from parameters.json — do NOT commit it.
+SAM-UVA-App-Integrations/event/env.json

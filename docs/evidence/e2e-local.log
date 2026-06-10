@@ -1,0 +1,34 @@
+=== UVA-App-Integrations e2e — LOCAL (sam local start-api :3031, unsigned) ===
+Wed Jun 10 15:08:33 -05 2026
+Resolved URL: http://127.0.0.1:3031  (Lambda in Docker calling the SAME 'main' AppSync as prod)
+Live UVA ids (discovered at runtime via main AppSync listUVAS, read-only): UVA_ANT025_00017, UVA_MKS025_00021, UVA_ANT025_00045
+STATUS: prod healthy, green parity. Local asserts the IDENTICAL 200 + shape (and identical 502 residual) as prod — same AppSync, same handler code.
+(AppSync API key written only to gitignored SAM-UVA-App-Integrations/event/env.json; NOT printed here.)
+
+>>> Running real e2e against LOCAL (sam local start-api :3031)...
+>>> Exporting AWS SSO credentials into the environment for sam local...
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.0, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/jose.salamanca/Documents/code/makesens/MakeSens-Apps/UVA-App-Integrations
+plugins: anyio-4.12.1, mock-3.11.1, respx-0.23.1, cov-7.0.0
+collecting ... collected 16 items
+
+test/e2e/test_last_connection_e2e.py::TestSingleLiveId::test_single_live_id_status PASSED [  6%]
+test/e2e/test_last_connection_e2e.py::TestSingleLiveId::test_single_live_id_body_shape PASSED [ 12%]
+test/e2e/test_last_connection_e2e.py::TestAllModeSingleId::test_all_single_id_status PASSED [ 18%]
+test/e2e/test_last_connection_e2e.py::TestAllModeSingleId::test_all_single_id_body PASSED [ 25%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_status PASSED [ 31%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_body PASSED [ 37%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_one_per_key PASSED [ 43%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_nonexistent_uva_is_502 PASSED [ 50%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_nonexistent_uva_not_2xx PASSED [ 56%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_all_mode_missing_id_query_param_is_502 PASSED [ 62%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_all_mode_empty_id_value_is_502 PASSED [ 68%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_malformed_id_list_trailing_comma_is_502 PASSED [ 75%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_wrong_method_post_on_connection_path PASSED [ 81%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_wrong_method_delete_on_connection_path PASSED [ 87%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_unknown_path_is_client_error PASSED [ 93%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_missing_connection_suffix_is_client_error PASSED [100%]
+
+============================= 16 passed in 22.58s ==============================
