@@ -1,17 +1,20 @@
 """
-E2E tests for POST /CreateRacimo  (create_racimo.lambda_handler).
+INTEGRATION tests for POST /CreateRacimo (create_racimo.lambda_handler).
+
+POST /CreateRacimo WRITES to AppSync (createRACIMO mutation), so per the tiering
+policy it is NEVER run against real AWS/AppSync. It is covered at the integration
+tier only: the datastore is mocked by reference (unittest.mock.patch on
+create_racimo.requests.post) so no real network call is made.
 
 The handler:
 1. Parses JSON body for 'name' and 'linkageCode'.
 2. Calls check_racimo_exists (SigV4-signed POST to AppSync listRACIMOS).
 3. If not found, calls create_racimo (SigV4-signed POST to AppSync createRACIMO).
 
-All network calls are intercepted via unittest.mock.patch so no real AWS or
-AppSync connectivity is needed.  SigV4 signing is exercised with the fake
-AWS credentials injected by the `create_racimo_env` fixture (which sets
-AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_DEFAULT_REGION env vars so
-botocore resolves credentials from the environment without hitting the
-EC2 metadata service).
+SigV4 signing is exercised with the fake AWS credentials injected by the
+`create_racimo_env` fixture (which sets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+/ AWS_DEFAULT_REGION env vars so botocore resolves credentials from the
+environment without hitting the EC2 metadata service).
 
 Import strategy: insert the source lambda directory at sys.path[0] here at
 module load time (before the import) to avoid picking up a stale
@@ -28,9 +31,9 @@ import pytest
 # ---------------------------------------------------------------------------
 # Inject the handler's source directory BEFORE importing the module.
 # ---------------------------------------------------------------------------
-_HANDLER_DIR = (
-    "/Users/jose.salamanca/Documents/code/makesens/MakeSens-Apps/"
-    "UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/createRacimo"
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_HANDLER_DIR = os.path.join(
+    _REPO_ROOT, "SAM-UVA-App-Integrations", "lambdas", "createRacimo"
 )
 if _HANDLER_DIR not in sys.path:
     sys.path.insert(0, _HANDLER_DIR)

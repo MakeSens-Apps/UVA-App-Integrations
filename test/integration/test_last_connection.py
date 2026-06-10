@@ -1,14 +1,15 @@
 """
-E2E tests for GET /{id_uva}/connection  (last_connection.lambda_handler).
+INTEGRATION tests for GET /{id_uva}/connection (last_connection.lambda_handler).
 
-The handler reaches AppSync over plain HTTP (requests.post) — no boto3 service
-clients are called for its core logic.  All network calls are intercepted with
-the 'responses' library (or unittest.mock) so no real AWS connectivity is needed.
+These exercise the handler function in-process with the AppSync HTTP datastore
+mocked by reference (unittest.mock.patch on last_connection.requests.post). No
+real AWS / AppSync connectivity is used here — the REAL end-to-end coverage for
+this endpoint lives in test/e2e/test_last_connection_e2e.py, which drives the
+deployed handler via `sam local start-api` against the real AppSync API.
 
 Import strategy: insert the source lambda directory at sys.path[0] right here so
-the module is importable as `last_connection`.  We do this at module-load time
-inside a try/except so that if the path was already added by a previous test run
-in the same session we simply re-use the cached module.
+the module is importable as `last_connection`, picking up the source file rather
+than a stale .aws-sam/build copy.
 """
 
 import json
@@ -24,9 +25,9 @@ import pytest
 # Inject the handler's source directory BEFORE importing the module so Python
 # finds the right file and not a stale .aws-sam/build copy.
 # ---------------------------------------------------------------------------
-_HANDLER_DIR = (
-    "/Users/jose.salamanca/Documents/code/makesens/MakeSens-Apps/"
-    "UVA-App-Integrations/SAM-UVA-App-Integrations/lambdas/uvaConnection"
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_HANDLER_DIR = os.path.join(
+    _REPO_ROOT, "SAM-UVA-App-Integrations", "lambdas", "uvaConnection"
 )
 if _HANDLER_DIR not in sys.path:
     sys.path.insert(0, _HANDLER_DIR)
@@ -253,6 +254,35 @@ class TestSingleUvaNoMeasurementFallback:
         body = json.loads(response["body"])
         # get_connection_status returns None when lastConnection is falsy
         assert body["uva-003"] is None
+
+    def test_nonexistent_uva_getuva_null_raises_attribute_error_bug(
+        self, last_connection_env, lambda_context
+    ):
+        """REAL-shape AppSync response for a nonexistent id triggers a BUG.
+
+        For an unknown id the live AppSync returns ``getUVA: null`` (NOT a dict
+        with a null field). get_creation_date then does
+        ``data.get('data', {}).get('getUVA', {}).get('createdAt')`` which becomes
+        ``None.get('createdAt')`` because the key exists with a None value ->
+        AttributeError. This is the same defect the e2e suite observes as a real
+        HTTP 502 (test_nonexistent_uva_returns_502_handler_bug).
+        """
+        empty_measurement_resp = _mock_response(
+            {"data": {"measurementsByUvaIDAndTs": {"items": []}}}
+        )
+        getuva_null_resp = _mock_response({"data": {"getUVA": None}})
+
+        responses_list = [empty_measurement_resp, getuva_null_resp]
+        call_count = {"n": 0}
+
+        def side_effect(*args, **kwargs):
+            idx = call_count["n"]
+            call_count["n"] += 1
+            return responses_list[idx]
+
+        with patch.object(_lc_module.requests, "post", side_effect=side_effect):
+            with pytest.raises(AttributeError):
+                lambda_handler(_apigw_event("nonexistent-uva"), lambda_context)
 
 
 class TestAllModeMultipleIds:

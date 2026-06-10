@@ -1,7 +1,8 @@
 .DEFAULT_GOAL := help
 
 SAM_DIR := SAM-UVA-App-Integrations
-PYTHON    := python3.9
+PYTHON    := python3
+PYTEST    := $(PYTHON) -m pytest
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -27,7 +28,9 @@ help:
 	@echo "  format            Run black (line-length=120)"
 	@echo ""
 	@echo "  ── Testing ──────────────────────────────────────────────────"
-	@echo "  test              Run e2e test suite with pytest"
+	@echo "  test              Run integration + e2e test suites with pytest"
+	@echo "  test-integration  Run mocked integration tests (no Docker/AWS needed)"
+	@echo "  test-e2e          Run real e2e (sam local + real AppSync over HTTP)"
 	@echo "  test-coverage     Run tests and generate HTML + terminal coverage report"
 	@echo "  test-single       Run a single test file  (usage: make test-single FILE=<path>)"
 	@echo ""
@@ -78,22 +81,33 @@ format:
 # ──────────────────────────────────────────────────────────────────────────────
 
 .PHONY: test
-test:
-	@echo ">>> Running e2e tests..."
-	pytest test/e2e/ -v --tb=short
+test: test-integration test-e2e
+
+.PHONY: test-integration
+test-integration:
+	@echo ">>> Running integration tests (mocked datastore, no Docker/AWS)..."
+	$(PYTEST) test/integration/ -v --tb=short
+
+.PHONY: test-e2e
+test-e2e:
+	@echo ">>> Running real e2e tests (sam local start-api + real AppSync)..."
+	@echo ">>> Exporting AWS SSO credentials into the environment for sam local..."
+	@eval "$$(aws configure export-credentials --format env)"; \
+	export AWS_DEFAULT_REGION=us-east-1; \
+	$(PYTEST) test/e2e/ -v --tb=short
 
 .PHONY: test-coverage
 test-coverage:
 	@echo ">>> Running tests with coverage..."
-	pytest test/e2e/ -v --tb=short --cov=. --cov-report=html --cov-report=term-missing
+	$(PYTEST) test/integration/ -v --tb=short --cov=. --cov-report=html --cov-report=term-missing
 
 .PHONY: test-single
 test-single:
 ifndef FILE
-	$(error FILE is not set. Usage: make test-single FILE=test/e2e/test_xxx.py)
+	$(error FILE is not set. Usage: make test-single FILE=test/integration/test_xxx.py)
 endif
 	@echo ">>> Running single test: $(FILE)"
-	pytest $(FILE) -v
+	$(PYTEST) $(FILE) -v
 
 # ──────────────────────────────────────────────────────────────────────────────
 # SAM / AWS
