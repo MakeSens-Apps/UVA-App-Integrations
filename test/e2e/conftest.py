@@ -201,12 +201,6 @@ def _wait_until_ready(timeout: int) -> bool:
 # Session-scoped fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
-def target_is_local():
-    """True iff the suite is pointed at a localhost target."""
-    return _is_localhost(_resolve_base_url())
-
-
-@pytest.fixture(scope="session")
 def api_base_url():
     """Resolve the target base URL.
 

@@ -72,6 +72,11 @@ is hardcoded in the tests.
   `aws iam simulate-principal-policy --action-names execute-api:Invoke
   --resource-arns arn:aws:execute-api:us-east-1:913045965320:m10nv4uxdf/Prod/GET/*`
   → **allowed**.
+* **Caller-credentials note:** the integration invokes the Lambda *as the
+  caller*, so the signing principal also needs **`lambda:InvokeFunction`** on
+  `UVA-App-Integrations-main-UVALastConnection-*`. This was missing in phase-2
+  (producing a misleading 500) and has since been **granted** — prod now returns
+  real `200` (see §5).
 
 ### Data parity (prod ↔ local)
 
@@ -87,7 +92,7 @@ runtime-discovered live UVA id resolves to identical data on both targets.
 
 | Endpoint | Tier | File | Green | Red | Total |
 |----------|------|------|-------|-----|-------|
-| `GET /{id_uva}/connection` | **e2e** (prod + local, same file) | `test/e2e/test_last_connection_e2e.py` | 6 | 9 | 15 |
+| `GET /{id_uva}/connection` | **e2e** (prod + local, same file) | `test/e2e/test_last_connection_e2e.py` | 7 | 9 | 16 |
 | `GET /{id_uva}/connection` | integration (mocked) | `test/integration/test_last_connection.py` | 10 | 8 | 18 |
 | `POST /CreateRacimo` | integration (mocked) | `test/integration/test_create_racimo.py` | 12 | 10 | 22 |
 
@@ -95,25 +100,41 @@ runtime-discovered live UVA id resolves to identical data on both targets.
 
 * Single live id → status + body shape (2).
 * `id_uva=all` + single `?id=` → status + body (2).
-* `id_uva=all` + multiple `?id=a,b` → status + body (2).
+* `id_uva=all` + multiple `?id=a,b` → status + body + one-key-per-id (3).
 
 The live UVA id(s) are **discovered at runtime** via a read-only `listUVAS`
 query against the **main** AppSync (`real_uva_id` fixture) — nothing is
-hardcoded. Greens branch on the `target_is_local` fixture so they assert the
-**actual** behaviour on each target (see §5) and stay green on both.
+hardcoded. The greens assert **identical** `200` + per-id `{connection, ts}`
+shape on **both** prod and local with **no per-target branching** — true green
+parity (see §5).
 
-### e2e red coverage (asserting the ACTUAL running-API response, both targets)
+### Prod-vs-local green parity (both assert the SAME result)
 
-| Case | Local | Prod | Layer |
-|------|-------|------|-------|
-| Nonexistent uva id | **502** (handler bug §6) | **500** (deployed-handler failure §5) | Lambda crash + real AppSync |
-| `id_uva=all` missing `?id=` | ≥500 | ≥500 | Lambda crash |
-| `id_uva=all` empty `?id=` | 502 | 500 | Lambda crash + real AppSync |
-| `id_uva=all` trailing comma `a,` | 502 | 500 | Lambda crash + real AppSync |
-| `POST` on GET-only path | ≥400 ≠200 | 403 (no IAM `POST`) | API GW / IAM |
-| `DELETE` on GET-only path | ≥400 ≠200 | 403 | API GW / IAM |
-| Unknown path | ≥400 ≠200 | 404 | API GW routing |
-| `/{id}` without `/connection` | ≥400 ≠200 | 404 | API GW routing |
+| Combination | Prod | Local | Assertion |
+|-------------|------|-------|-----------|
+| Single live id | **200** `{"<id>":{connection,ts}}` | **200** (identical) | `status==200`, single key, value null or `{bool,int}` |
+| `all` + single `?id=` | **200** | **200** (identical) | `status==200`, single key |
+| `all` + multiple `?id=a,b` | **200** | **200** (identical) | `status==200`, one key per id, shape, `keys==set(ids)` |
+
+Both targets proxy the **same** `main` AppSync, so the runtime-discovered live id
+returns the same underlying data and the suite is green on both with the same
+assertions.
+
+### e2e red coverage (asserting the ACTUAL running-API response — same on both)
+
+| Case | Prod | Local | Layer |
+|------|------|-------|-------|
+| Nonexistent uva id | **502** (handler bug §6) | **502** (handler bug §6) | Lambda crash + real AppSync |
+| `id_uva=all` missing `?id=` | **502** | **502** | Lambda crash |
+| `id_uva=all` empty `?id=` | **502** | **502** | Lambda crash + real AppSync |
+| `id_uva=all` trailing comma `a,` | **502** | **502** | Lambda crash + real AppSync |
+| `POST` on GET-only path | 403 (no IAM `POST`) | ≥400 ≠200 | API GW / IAM |
+| `DELETE` on GET-only path | 403 | ≥400 ≠200 | API GW / IAM |
+| Unknown path | 404 | ≥400 ≠200 | API GW routing |
+| `/{id}` without `/connection` | 404 | ≥400 ≠200 | API GW routing |
+
+The `502` residual is **identical on both targets** (same AppSync, same handler
+code path) — asserted, not forced green, and documented as a known bug in §6.
 
 ---
 
@@ -164,30 +185,44 @@ gracefully** (never fails) when Docker/`sam`/creds are unavailable.
 
 ---
 
-## 5. Prod-vs-local divergence (captured honestly)
+## 5. Prod is operational — green parity with local
 
-The e2e runs found a **genuine divergence** between targets — recorded, not
-faked:
+> **Correction of a prior (phase-2) conclusion.** An earlier run reported that
+> **every** signed prod `GET` — *including a live id* — returned **HTTP 500**
+> `{"message":"Internal server error"}`, and concluded the deployed prod Lambda
+> was "stale/broken". **That was wrong.** It was a **permissions artifact**, not
+> a code failure.
+>
+> The internal API (`internal/uva-integration-main`) invokes the backend Lambda
+> with **caller credentials** (the integration runs the Lambda *as the signing
+> principal*). The read-only SSO role used for testing had `execute-api:Invoke`
+> on the API Gateway method but **lacked `lambda:InvokeFunction`** on
+> `UVA-App-Integrations-main-UVALastConnection-*`. So SigV4 reached API Gateway,
+> but the caller-credentials invocation of the Lambda was denied → API Gateway
+> surfaced a generic **500**. The 500 was authorization, not a handler crash.
+>
+> That permission has now been **granted**. Re-probed (signed, read-only role):
+>
+> ```
+> GET https://api.makesens.co/internal/uva-integration-main/UVA_ANT025_00017/connection
+>   → 200 {"UVA_ANT025_00017": {"connection": true, "ts": 1781094352298}}
+> ```
 
-* **Local** (Lambda built from this repo, running in Docker): a live id returns
-  **HTTP 200** with `{"<id>": {"connection": <bool>, "ts": <int>}}`; an unknown
-  id returns **HTTP 502** (the §6 handler bug).
-* **Production** (`m10nv4uxdf`, deployed Lambda last modified `2024-12-27`, no
-  successful invocation logged since `2025-04`): **every** signed `GET`,
-  *including a live id*, returns **HTTP 500** `{"message":"Internal server
-  error"}`. Unsigned requests get `403 Missing Authentication Token`, so SigV4
-  auth succeeds and the 500 is a real **deployed-handler failure** (it occurs
-  before the Lambda emits any new CloudWatch log line), distinct from the local
-  502.
+**Prod is therefore healthy and reaches true green parity with local.** Both
+targets proxy the **same** `main` AppSync, so:
 
-**Root cause / divergence:** the deployed prod Lambda runs an older/broken code
-version than the one in this repo (which works locally). The migration must
-redeploy this stack; this suite will then flip the prod greens to 200 and the
-prod reds to 502, matching local. Until then the suite asserts the *current*
-prod reality (500) so it stays green while truthfully recording the outage.
+* **GREEN** — single live id, `all`+single `?id=`, and `all`+multiple `?id=` all
+  return **HTTP 200** with `{"<id>": {"connection": <bool>, "ts": <int ms>}}` on
+  **both** prod and local. The e2e greens assert this **identically** on both
+  targets with **no per-target branching** (see §3 parity table).
+* **RED residual** — an unknown id (and the missing/empty/malformed `?id=`
+  variants that resolve to an unknown id) returns **HTTP 502** on **both**
+  targets, because both hit the same AppSync and the same handler code path (the
+  §6 `getUVA: null` bug). This is asserted as the real status on each target, not
+  forced green, and documented as a known bug.
 
 Evidence (full pytest output, no secrets): `docs/evidence/e2e-prod.log`,
-`docs/evidence/e2e-local.log`.
+`docs/evidence/e2e-local.log` — both **16 passed**.
 
 ---
 
@@ -202,6 +237,7 @@ created_at = data.get('data', {}).get('getUVA', {}).get('createdAt')
 For a **nonexistent** uva id AppSync returns `{"data": {"getUVA": null}}` — the
 `getUVA` key is present with value `None`, so the `, {}` default is never used
 and this becomes `None.get('createdAt')` → `AttributeError` → unhandled →
-**API Gateway 502** (observed locally). A fix would be
-`(… .get('getUVA') or {}).get('createdAt')`. Not applied — this change set is
-test-only.
+**API Gateway 502**. This is observed **identically on both prod and local**
+(same AppSync, same handler code), so it is a genuine product bug, not a
+prod/local divergence. A fix would be `(… .get('getUVA') or {}).get('createdAt')`.
+Not applied — this change set is test-only.
