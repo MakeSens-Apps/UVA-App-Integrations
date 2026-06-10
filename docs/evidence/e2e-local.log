@@ -1,0 +1,29 @@
+=== E2E LOCAL RUN ===
+Wed Jun 10 13:11:33 -05 2026
+Resolved E2E_BASE_URL=http://127.0.0.1:3031
+sam local start-api --port 3031 --warm-containers LAZY  (Lambda -> main AppSync, unsigned)
+===================
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.0, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/jose.salamanca/Documents/code/makesens/MakeSens-Apps/UVA-App-Integrations
+plugins: anyio-4.12.1, mock-3.11.1, respx-0.23.1, cov-7.0.0
+collecting ... collected 15 items
+
+test/e2e/test_last_connection_e2e.py::TestSingleLiveId::test_single_live_id_status PASSED [  6%]
+test/e2e/test_last_connection_e2e.py::TestSingleLiveId::test_single_live_id_body_shape PASSED [ 13%]
+test/e2e/test_last_connection_e2e.py::TestAllModeSingleId::test_all_single_id_status PASSED [ 20%]
+test/e2e/test_last_connection_e2e.py::TestAllModeSingleId::test_all_single_id_body PASSED [ 26%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_status PASSED [ 33%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_body PASSED [ 40%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_nonexistent_uva_is_server_error PASSED [ 46%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_nonexistent_uva_not_2xx PASSED [ 53%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_all_mode_missing_id_query_param_is_5xx PASSED [ 60%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_all_mode_empty_id_value_is_server_error PASSED [ 66%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_malformed_id_list_trailing_comma_is_server_error PASSED [ 73%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_wrong_method_post_on_connection_path PASSED [ 80%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_wrong_method_delete_on_connection_path PASSED [ 86%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_unknown_path_is_client_error PASSED [ 93%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_missing_connection_suffix_is_client_error PASSED [100%]
+
+============================= 15 passed in 23.83s ==============================

@@ -28,9 +28,11 @@ help:
 	@echo "  format            Run black (line-length=120)"
 	@echo ""
 	@echo "  ── Testing ──────────────────────────────────────────────────"
-	@echo "  test              Run integration + e2e test suites with pytest"
+	@echo "  test              Run integration + e2e (prod + local) suites"
 	@echo "  test-integration  Run mocked integration tests (no Docker/AWS needed)"
-	@echo "  test-e2e          Run real e2e (sam local + real AppSync over HTTP)"
+	@echo "  test-e2e          Run real e2e against BOTH targets (prod + local)"
+	@echo "  test-e2e-prod     Run real e2e against PRODUCTION (api.makesens.co, signed)"
+	@echo "  test-e2e-local    Run real e2e against LOCAL (sam local start-api :3031)"
 	@echo "  test-coverage     Run tests and generate HTML + terminal coverage report"
 	@echo "  test-single       Run a single test file  (usage: make test-single FILE=<path>)"
 	@echo ""
@@ -88,13 +90,33 @@ test-integration:
 	@echo ">>> Running integration tests (mocked datastore, no Docker/AWS)..."
 	$(PYTEST) test/integration/ -v --tb=short
 
+# Real e2e against BOTH targets: production (signed) then local (sam local).
 .PHONY: test-e2e
-test-e2e:
-	@echo ">>> Running real e2e tests (sam local start-api + real AppSync)..."
+test-e2e: test-e2e-prod test-e2e-local
+
+# Production: SigV4-signed GETs against the live api.makesens.co main endpoint.
+# Read-only — no sam, no Docker. E2E_BASE_URL selects the prod base URL and the
+# client auto-signs because the host is not localhost.
+PROD_E2E_URL := https://api.makesens.co/internal/uva-integration-main
+
+.PHONY: test-e2e-prod
+test-e2e-prod:
+	@echo ">>> Running real e2e against PRODUCTION ($(PROD_E2E_URL))..."
+	@echo ">>> Exporting AWS SSO credentials for SigV4 signing..."
+	@eval "$$(aws configure export-credentials --format env)"; \
+	export AWS_DEFAULT_REGION=us-east-1; \
+	E2E_BASE_URL=$(PROD_E2E_URL) $(PYTEST) test/e2e -v --tb=short
+
+# Local: build + start sam local start-api on :3031 (Lambda in Docker calling the
+# SAME main AppSync as prod), run the suite unsigned against 127.0.0.1, tear down.
+# The conftest's api_base_url fixture owns the sam lifecycle as one command.
+.PHONY: test-e2e-local
+test-e2e-local:
+	@echo ">>> Running real e2e against LOCAL (sam local start-api :3031)..."
 	@echo ">>> Exporting AWS SSO credentials into the environment for sam local..."
 	@eval "$$(aws configure export-credentials --format env)"; \
 	export AWS_DEFAULT_REGION=us-east-1; \
-	$(PYTEST) test/e2e/ -v --tb=short
+	E2E_BASE_URL=http://127.0.0.1:3031 $(PYTEST) test/e2e -v --tb=short
 
 .PHONY: test-coverage
 test-coverage:

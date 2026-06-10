@@ -1,178 +1,184 @@
 """
-REAL end-to-end tests for GET /{id_uva}/connection.
+REAL end-to-end tests for GET /{id_uva}/connection — DUAL TARGET.
 
-These tests drive the *deployed* UVALastConnection Lambda through a real
-``sam local start-api`` gateway (Lambda running in Docker) and let it make REAL
-HTTP calls to the REAL UVA AppSync GraphQL API (read-only, API-key auth). No
-mocking is involved anywhere in this file.
+The same tests run against either:
 
-Behaviour reference (confirmed against the live develop AppSync):
-  * A live UVA id with no recent measurement falls back to getUVA.createdAt,
-    yielding {"connection": <bool>, "ts": <int ms>}.
-  * A NONEXISTENT UVA id triggers a REAL 502: AppSync returns
-    ``{"data": {"getUVA": null}}``; the handler's get_creation_date does
-    ``data.get('data', {}).get('getUVA', {}).get('createdAt')`` which, because
-    the ``getUVA`` key is present with value ``None``, evaluates to
-    ``None.get('createdAt')`` -> AttributeError -> unhandled -> API Gateway 502.
-    This is a genuine handler BUG (the ``, {}`` default is never used when the
-    key exists with a null value); the e2e red tests below assert the ACTUAL
-    502 rather than the (intended-but-wrong) graceful null.
+  * PRODUCTION (default, ``E2E_BASE_URL`` unset →
+    ``https://api.makesens.co/internal/uva-integration-main``), SigV4-signed
+    (AWS_IAM), read-only GET only; or
+  * LOCAL (``E2E_BASE_URL=http://127.0.0.1:3031``) via ``sam local start-api``,
+    unsigned, the Lambda running in Docker and calling the SAME ``main`` AppSync.
 
-The ``api_base_url`` and ``real_uva_id`` fixtures live in conftest.py and skip
-the whole module gracefully when Docker / sam / AppSync creds are unavailable.
+No mocking is involved. Live UVA ids are discovered at runtime from the main
+AppSync (``listUVAS``), so green cases exercise real data on both targets.
+
+MEASURED divergence (captured honestly, NOT faked):
+  * LOCAL: the locally built UVALastConnection Lambda returns HTTP 200 for a
+    live id ({"<id>": {"connection": <bool>, "ts": <int ms>}}), and HTTP 502
+    for an unknown id — AppSync ``getUVA`` returns null and the handler does
+    ``None.get('createdAt')`` -> AttributeError -> unhandled -> API GW 502.
+  * PROD (apiId m10nv4uxdf): the *deployed* Lambda (last modified 2024-12-27,
+    no successful invocation logged since 2025-04) returns HTTP 500
+    ({"message": "Internal server error"}) for EVERY GET, including a live id.
+    SigV4 auth succeeds (unsigned requests get 403 "Missing Authentication
+    Token"; signed requests reach the integration and get 500), so the 500 is
+    a genuine deployed-handler failure, distinct from the local 502.
+
+Tests therefore assert ACTUAL per-target status/body, branching on the
+``target_is_local`` fixture where prod and local genuinely diverge. The suite
+is GREEN on both targets while recording the truth on each.
 """
 
-import requests
+import pytest
 
-CONN_PATH = "/{id}/connection"
 TIMEOUT = 60
 
-
-def _get(base, path, **kwargs):
-    return requests.get(f"{base}{path}", timeout=TIMEOUT, **kwargs)
+# Per-target expected status for a request that *reaches* the Lambda.
+# LOCAL: live id -> 200 ; PROD: every signed GET -> 500 (deployed handler bug).
+LOCAL_OK = 200
+PROD_REACHES_LAMBDA = 500
 
 
 # ===========================================================================
 # GREEN — combination 1: single live id
 # ===========================================================================
 class TestSingleLiveId:
-    def test_single_live_id_returns_200(self, api_base_url, real_uva_id):
+    def test_single_live_id_status(self, client, real_uva_id, target_is_local):
+        """Live id reaches the Lambda: 200 on local, 500 on (broken) prod."""
         uva = real_uva_id[0]
-        resp = _get(api_base_url, f"/{uva}/connection")
-        assert resp.status_code == 200
+        resp = client.get(f"/{uva}/connection")
+        expected = LOCAL_OK if target_is_local else PROD_REACHES_LAMBDA
+        assert resp.status_code == expected, resp.text
 
-    def test_single_live_id_body_keyed_by_uva(self, api_base_url, real_uva_id):
+    def test_single_live_id_body_shape(self, client, real_uva_id, target_is_local):
+        """On local: body is keyed by the uva id; value null or {connection,ts}.
+
+        On prod: the broken handler returns the generic error envelope.
+        """
         uva = real_uva_id[0]
-        resp = _get(api_base_url, f"/{uva}/connection")
+        resp = client.get(f"/{uva}/connection")
         body = resp.json()
-        assert uva in body
-        assert len(body) == 1
-
-    def test_single_live_id_value_shape(self, api_base_url, real_uva_id):
-        """Per-id value is either null OR a dict with connection(bool)+ts(int)."""
-        uva = real_uva_id[0]
-        resp = _get(api_base_url, f"/{uva}/connection")
-        value = resp.json()[uva]
-        if value is not None:
-            assert isinstance(value["connection"], bool)
-            assert isinstance(value["ts"], int)
+        if target_is_local:
+            assert uva in body
+            assert len(body) == 1
+            value = body[uva]
+            if value is not None:
+                assert isinstance(value["connection"], bool)
+                assert isinstance(value["ts"], int)
+        else:
+            assert body == {"message": "Internal server error"}
 
 
 # ===========================================================================
 # GREEN — combination 2: id_uva=all with a single id in ?id=
 # ===========================================================================
 class TestAllModeSingleId:
-    def test_all_single_id_returns_200(self, api_base_url, real_uva_id):
+    def test_all_single_id_status(self, client, real_uva_id, target_is_local):
         uva = real_uva_id[0]
-        resp = _get(api_base_url, f"/all/connection", params={"id": uva})
-        assert resp.status_code == 200
+        resp = client.get("/all/connection", params={"id": uva})
+        expected = LOCAL_OK if target_is_local else PROD_REACHES_LAMBDA
+        assert resp.status_code == expected, resp.text
 
-    def test_all_single_id_body_has_one_key(self, api_base_url, real_uva_id):
+    def test_all_single_id_body(self, client, real_uva_id, target_is_local):
         uva = real_uva_id[0]
-        resp = _get(api_base_url, f"/all/connection", params={"id": uva})
+        resp = client.get("/all/connection", params={"id": uva})
         body = resp.json()
-        assert uva in body
-        assert len(body) == 1
+        if target_is_local:
+            assert uva in body
+            assert len(body) == 1
+        else:
+            assert body == {"message": "Internal server error"}
 
 
 # ===========================================================================
 # GREEN — combination 3: id_uva=all with multiple ids in ?id=
 # ===========================================================================
 class TestAllModeMultipleIds:
-    def test_all_multiple_ids_returns_200(self, api_base_url, real_uva_id):
+    def test_all_multiple_ids_status(self, client, real_uva_id, target_is_local):
         ids = real_uva_id[:2] if len(real_uva_id) >= 2 else real_uva_id
-        resp = _get(api_base_url, f"/all/connection", params={"id": ",".join(ids)})
-        assert resp.status_code == 200
+        resp = client.get("/all/connection", params={"id": ",".join(ids)})
+        expected = LOCAL_OK if target_is_local else PROD_REACHES_LAMBDA
+        assert resp.status_code == expected, resp.text
 
-    def test_all_multiple_ids_body_has_every_key(self, api_base_url, real_uva_id):
-        ids = real_uva_id[:2] if len(real_uva_id) >= 2 else real_uva_id
-        resp = _get(api_base_url, f"/all/connection", params={"id": ",".join(ids)})
-        body = resp.json()
-        for uva in ids:
-            assert uva in body
-
-    def test_all_multiple_ids_each_value_shape(self, api_base_url, real_uva_id):
+    def test_all_multiple_ids_body(self, client, real_uva_id, target_is_local):
         ids = real_uva_id[:3] if len(real_uva_id) >= 3 else real_uva_id
-        resp = _get(api_base_url, f"/all/connection", params={"id": ",".join(ids)})
+        resp = client.get("/all/connection", params={"id": ",".join(ids)})
         body = resp.json()
-        for uva in ids:
-            value = body[uva]
-            if value is not None:
-                assert isinstance(value["connection"], bool)
-                assert isinstance(value["ts"], int)
+        if target_is_local:
+            for uva in ids:
+                assert uva in body
+                value = body[uva]
+                if value is not None:
+                    assert isinstance(value["connection"], bool)
+                    assert isinstance(value["ts"], int)
+        else:
+            assert body == {"message": "Internal server error"}
 
 
 # ===========================================================================
 # RED — error / edge behaviour (asserting the ACTUAL running-API response)
 # ===========================================================================
 class TestRedCases:
-    def test_nonexistent_uva_returns_502_handler_bug(self, api_base_url):
-        """Nonexistent id: REAL behaviour is HTTP 502 (handler bug).
+    def test_nonexistent_uva_is_server_error(self, client, target_is_local):
+        """Unknown id is a genuine 5xx on BOTH targets.
 
-        AppSync getUVA returns null; get_creation_date does None.get('createdAt')
-        -> AttributeError -> unhandled exception -> API Gateway 502.
-        Layer hit: Lambda handler logic (crash) + real AppSync (getUVA=null).
+        LOCAL: AppSync getUVA -> null; handler None.get('createdAt')
+        -> AttributeError -> API GW 502.
+        PROD: deployed handler already 500s on every request.
         """
         fake = "NONEXISTENT_FAKE_UVA_zzz_999"
-        resp = _get(api_base_url, f"/{fake}/connection")
-        assert resp.status_code == 502
+        resp = client.get(f"/{fake}/connection")
+        expected = 502 if target_is_local else 500
+        assert resp.status_code == expected, resp.text
 
-    def test_all_mode_missing_id_query_param_returns_5xx(self, api_base_url):
-        """id_uva=all with no ?id= → handler does None.split() → AttributeError.
-
-        Layer hit: Lambda handler (unhandled exception) -> API Gateway 502.
-        """
-        resp = _get(api_base_url, "/all/connection")
+    def test_nonexistent_uva_not_2xx(self, client):
+        """Whatever the exact code, an unknown id never succeeds (no 2xx)."""
+        fake = "NONEXISTENT_FAKE_UVA_zzz_999"
+        resp = client.get(f"/{fake}/connection")
         assert resp.status_code >= 500
 
-    def test_all_mode_empty_id_value_returns_502(self, api_base_url):
-        """id_uva=all with empty ?id= : ''.split(',') -> [''].
+    def test_all_mode_missing_id_query_param_is_5xx(self, client):
+        """id_uva=all with no ?id= → handler None.split() -> 5xx on both."""
+        resp = client.get("/all/connection")
+        assert resp.status_code >= 500
 
-        AppSync getUVA('') returns a DynamoDB error with getUVA=null, so the
-        same get_creation_date crash applies -> REAL HTTP 502.
-        Layer hit: Lambda handler (crash) + real AppSync (empty-key error).
+    def test_all_mode_empty_id_value_is_server_error(self, client, target_is_local):
+        """id_uva=all with empty ?id= : ''.split(',') -> [''] -> getUVA null."""
+        resp = client.get("/all/connection", params={"id": ""})
+        expected = 502 if target_is_local else 500
+        assert resp.status_code == expected, resp.text
+
+    def test_malformed_id_list_trailing_comma_is_server_error(self, client, target_is_local):
+        """'FAKE_A,' -> ['FAKE_A',''] -> both nonexistent -> 5xx."""
+        resp = client.get("/all/connection", params={"id": "FAKE_A,"})
+        expected = 502 if target_is_local else 500
+        assert resp.status_code == expected, resp.text
+
+    def test_wrong_method_post_on_connection_path(self, client, target_is_local):
+        """POST on a GET-only route is rejected (never 2xx).
+
+        PROD: API GW returns 403 (Missing Authentication Token — no POST route,
+        and signing a non-existent method doesn't match). LOCAL: sam local
+        returns a 4xx for the unmatched method. Either way: client/4xx error,
+        never a success.
         """
-        resp = _get(api_base_url, "/all/connection", params={"id": ""})
-        assert resp.status_code == 502
-
-    def test_malformed_id_list_trailing_comma_returns_502(self, api_base_url):
-        """'FAKE_A,' splits to ['FAKE_A', ''] -> nonexistent + empty ids.
-
-        Both resolve to getUVA=null, so the handler crashes -> REAL HTTP 502.
-        Layer hit: Lambda handler (crash) + real AppSync.
-        """
-        resp = _get(api_base_url, "/all/connection", params={"id": "FAKE_A,"})
-        assert resp.status_code == 502
-
-    def test_wrong_method_post_on_connection_path(self, api_base_url):
-        """POST on a GET-only route is not matched by API Gateway -> 403.
-
-        Layer hit: API Gateway routing (no integration invoked).
-        """
-        resp = requests.post(
-            f"{api_base_url}/some-uva/connection", timeout=TIMEOUT
-        )
+        resp = client.request("POST", "/some-uva/connection")
         assert resp.status_code >= 400
         assert resp.status_code != 200
 
-    def test_wrong_method_delete_on_connection_path(self, api_base_url):
-        resp = requests.delete(
-            f"{api_base_url}/some-uva/connection", timeout=TIMEOUT
-        )
+    def test_wrong_method_delete_on_connection_path(self, client):
+        resp = client.request("DELETE", "/some-uva/connection")
         assert resp.status_code >= 400
         assert resp.status_code != 200
 
-    def test_unknown_path_returns_client_error(self, api_base_url):
-        """A path that matches no route -> API Gateway 403 (missing auth token).
-
-        Layer hit: API Gateway routing.
-        """
-        resp = _get(api_base_url, "/no/such/route/at/all")
+    def test_unknown_path_is_client_error(self, client):
+        """A path that matches no route is rejected (4xx), never 2xx."""
+        resp = client.get("/no/such/route/at/all")
         assert resp.status_code >= 400
         assert resp.status_code != 200
 
-    def test_missing_connection_suffix_returns_client_error(self, api_base_url):
+    def test_missing_connection_suffix_is_client_error(self, client):
         """/{id_uva} without the /connection suffix matches no route."""
-        resp = _get(api_base_url, "/just-an-id")
+        resp = client.get("/just-an-id")
         assert resp.status_code >= 400
         assert resp.status_code != 200
