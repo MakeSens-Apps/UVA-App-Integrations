@@ -1,0 +1,41 @@
+=== UVA-App-Integrations e2e — PRODUCTION (signed, AWS_IAM/SigV4) ===
+Wed Jun 10 15:08:15 -05 2026
+Resolved URL: https://api.makesens.co/internal/uva-integration-main (apiId m10nv4uxdf, stack UVA-App-Integrations-main)
+Live UVA ids (discovered at runtime via main AppSync listUVAS, read-only): UVA_ANT025_00017, UVA_MKS025_00021, UVA_ANT025_00045
+STATUS: prod healthy, green parity. Reconfirmed GET /{id}/connection -> 200 {"<id>":{"connection":bool,"ts":int}}.
+Phase-2's 'prod 500/stale' was a PERMISSIONS artifact (caller-credentials integration lacked lambda:InvokeFunction); now granted -> prod operational.
+(AppSync API key intentionally NOT printed.)
+
+>>> Running real e2e against PRODUCTION (https://api.makesens.co/internal/uva-integration-main)...
+>>> Exporting AWS SSO credentials for SigV4 signing...
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.0, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/jose.salamanca/Documents/code/makesens/MakeSens-Apps/UVA-App-Integrations
+plugins: anyio-4.12.1, mock-3.11.1, respx-0.23.1, cov-7.0.0
+collecting ... collected 16 items
+
+test/e2e/test_last_connection_e2e.py::TestSingleLiveId::test_single_live_id_status PASSED [  6%]
+test/e2e/test_last_connection_e2e.py::TestSingleLiveId::test_single_live_id_body_shape PASSED [ 12%]
+test/e2e/test_last_connection_e2e.py::TestAllModeSingleId::test_all_single_id_status PASSED [ 18%]
+test/e2e/test_last_connection_e2e.py::TestAllModeSingleId::test_all_single_id_body PASSED [ 25%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_status PASSED [ 31%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_body PASSED [ 37%]
+test/e2e/test_last_connection_e2e.py::TestAllModeMultipleIds::test_all_multiple_ids_one_per_key PASSED [ 43%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_nonexistent_uva_is_502 PASSED [ 50%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_nonexistent_uva_not_2xx PASSED [ 56%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_all_mode_missing_id_query_param_is_502 PASSED [ 62%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_all_mode_empty_id_value_is_502 PASSED [ 68%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_malformed_id_list_trailing_comma_is_502 PASSED [ 75%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_wrong_method_post_on_connection_path PASSED [ 81%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_wrong_method_delete_on_connection_path PASSED [ 87%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_unknown_path_is_client_error PASSED [ 93%]
+test/e2e/test_last_connection_e2e.py::TestRedCases::test_missing_connection_suffix_is_client_error PASSED [100%]
+
+=============================== warnings summary ===============================
+test/e2e/test_last_connection_e2e.py: 16 warnings
+  /Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/botocore/auth.py:419: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    datetime_now = datetime.datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 16 passed, 16 warnings in 8.38s ========================
