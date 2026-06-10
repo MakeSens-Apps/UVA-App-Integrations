@@ -1,0 +1,8 @@
+
+# Build & test artifacts (never commit)
+.aws-sam/
+.pytest_cache/
+__pycache__/
+*.pyc
+.coverage
+htmlcov/
