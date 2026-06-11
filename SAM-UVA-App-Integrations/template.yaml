@@ -2,11 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 
 Description: >
- Este microservicio se enfoca en integrar UVA con los otros servicios 
- de MakeSens: 
+ Este microservicio se enfoca en integrar UVA con los otros servicios
+ de MakeSens:
  1. DeviceDataAcces
  2. MakeSensCloud
  3. UserAPI (Connection)
+
+ Arquitectura hexagonal: UNA sola Lambda HTTP (FastAPI + Mangum) sirve TODOS los
+ endpoints HTTP (GET /{id_uva}/connection y POST /CreateRacimo). Las
+ integraciones NO-HTTP (DynamoDB Stream -> Lambda) siguen como Lambdas separadas
+ que comparten el mismo build (CodeUri: src).
 
 Globals:
   Function:
@@ -19,7 +24,7 @@ Parameters:
   # Parametros de integración con DeviceDataAccess
   SNSTopicARN:
     Type: String
-    Default: arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop 
+    Default: arn:aws:sns:us-east-1:913045965320:RealTimeDeviceData-develop
   TopicRegion:
     Type: String
     Default: us-east-1
@@ -58,12 +63,15 @@ Parameters:
     Default: da2-ocpxiy4zsncszex4m7lepzxgnq
 
 Resources:
-  # DeviceDataAccess
+  # ===========================================================================
+  # NO-HTTP: DeviceDataAccess (Measurement DynamoDB Stream -> SNS)
+  # Lambda separada (stream-triggered). Comparte el build src (CodeUri: src).
+  # ===========================================================================
   DynamoDBEventProcessorFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: lambdas/deviceDataAccess
-      Handler: dynamodb_to_sns.lambda_handler
+      CodeUri: src
+      Handler: lambda_handlers.event_ingestor_measurement_handler.handler
       Events:
         DynamoDBStreamEvent:
           Type: DynamoDB
@@ -93,15 +101,18 @@ Resources:
                 - sns:Publish
               Resource: !Ref SNSTopicARN
       Environment:
-        Variables:    
+        Variables:
           SNSTopicARN: !Ref SNSTopicARN
 
-  # Cloud
+  # ===========================================================================
+  # NO-HTTP: Cloud (UVA DynamoDB Stream -> MakeSens Cloud AppSync)
+  # Lambda separada (stream-triggered). Comparte el build src (CodeUri: src).
+  # ===========================================================================
   UvaToCloudFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: lambdas/cloud
-      Handler: uva_to_cloud.lambda_handler
+      CodeUri: src
+      Handler: lambda_handlers.event_ingestor_uva_handler.handler
       Events:
         DynamoDBStreamEvent:
           Type: DynamoDB
@@ -131,33 +142,47 @@ Resources:
                 - dynamodb:Query
                 - dynamodb:Scan
                 - dynamodb:GetItem
-              Resource: 
+              Resource:
                 - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${RacimoName}
                 - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${OrganizationName}
                 - Fn::Sub: arn:aws:dynamodb:us-east-1:913045965320:table/${LocationName}
       Environment:
-        Variables:    
+        Variables:
           RACIMOTable: !Ref RacimoName
-          OrganizationTable: !Ref OrganizationName 
+          OrganizationTable: !Ref OrganizationName
           LocationTable: !Ref LocationName
           AppSyncURL: !Ref CloudAppsyncUrl
           ApiKey: !Ref CloudApiKey
-  
-  UVALastConnection: 
+
+  # ===========================================================================
+  # HTTP: UNA sola Lambda (FastAPI + Mangum) que sirve TODOS los endpoints HTTP.
+  # Logical ID mantenido como `UVALastConnection` para preservar el mapeo de
+  # variables de entorno del harness e2e (--env-vars usa esta clave).
+  #   GET  /{id_uva}/connection   (antes: UVALastConnection)
+  #   POST /CreateRacimo          (antes: CreateRacimo)
+  # ===========================================================================
+  UVALastConnection:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: lambdas/uvaConnection
-      Handler: last_connection.lambda_handler
+      CodeUri: src
+      Handler: lambda_handlers.api_handler.handler
       Runtime: python3.9
       Timeout: 600
-      Events: 
-        MyAPIGatewayEvent:
+      Events:
+        LastConnectionApiEvent:
           Type: Api
           Properties:
             Path: /{id_uva}/connection
             Method: GET
             Auth:
-              Authorizer: AWS_IAM  
+              Authorizer: AWS_IAM
+        CreateRacimoApiEvent:
+          Type: Api
+          Properties:
+            Path: /CreateRacimo
+            Method: POST
+            Auth:
+              Authorizer: AWS_IAM
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -166,35 +191,14 @@ Resources:
               Action:
                 - appsync:GraphQL
               Resource: '*'
-      Environment:
-        Variables:    
-          AppSyncURL: !Ref UvaAppsyncUrl
-          ApiKey: !Ref UvaApiKey
-
-# Crear RACIMO
-  CreateRacimo:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      CodeUri: lambdas/createRacimo
-      Handler: create_racimo.lambda_handler
-      Events: 
-        MyAPIGatewayEvent:
-          Type: Api
-          Properties:
-            Path: /CreateRacimo
-            Method: POST
-            Auth:
-              Authorizer: AWS_IAM 
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
             - Sid: "AppSyncGraphQLAccess"
               Effect: Allow
               Action:
                 - appsync:GraphQL
-              Resource: 
+              Resource:
                 - !Sub "arn:aws:appsync:us-east-1:913045965320:apis/${AppId}/types/Mutation/fields/createRACIMO"
                 - !Sub "arn:aws:appsync:us-east-1:913045965320:apis/${AppId}/types/Query/fields/listRACIMOS"
       Environment:
-        Variables:    
+        Variables:
           AppSyncURL: !Ref UvaAppsyncUrl
+          ApiKey: !Ref UvaApiKey
